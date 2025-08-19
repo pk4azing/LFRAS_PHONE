@@ -4,10 +4,11 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
-
+from rest_framework.views import APIView
+from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework import generics, permissions, status, viewsets, mixins
 from rest_framework.response import Response
-from rest_framework.decorators import action
+from django.http import HttpResponseRedirect
 
 from .serializers import (
     UserSerializer,
@@ -253,3 +254,26 @@ class CCDCreateView(generics.CreateAPIView):
             for poc in User.objects.filter(cd=user.cd, role="CD_ADMIN"):
                 add_notification(poc, user.cd, f"CCD user {user.email} created.", "CCD_CREATED", actor=self.request.user)
         add_audit(actor=self.request.user, cd=user.cd, event="CCD_CREATED", target_user=user)
+
+
+
+class LogoutView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        user = request.user
+
+        # Blacklist refresh token if provided
+        refresh_token = request.data.get("refresh")
+        if refresh_token:
+            try:
+                token = RefreshToken(refresh_token)
+                token.blacklist()
+            except Exception:
+                pass
+
+        # Audit log
+        add_audit(actor=user, cd=getattr(user, "cd", None), event="USER_LOGOUT", meta={"user_id": user.id})
+
+        # Redirect to login page (frontend)
+        return HttpResponseRedirect("/login")
