@@ -1,49 +1,57 @@
-LFRAS Phone – CD & CCD Backend
+# LFRAS Phone – CD & CCD Backend
 
-This repository contains the backend implementation of the Lucid Financial Reporting & Analysis Suite (LFRAS) for Customer Dashboard (CD) and Client’s Customer Dashboard (CCD).
-It is built with Django + Django REST Framework (DRF) and designed to run in Docker with PostgreSQL and S3 integrations.
+This repository contains the **backend implementation** of the **Lucid Financial Reporting & Analysis Suite (LFRAS)** for **Customer Dashboard (CD)** and **Client’s Customer Dashboard (CCD)**.  
+It is built with **Django + Django REST Framework (DRF)** and designed to run in **Docker** with PostgreSQL and S3 integrations.
 
-⸻
+---
 
-🚀 Features
-	•	Authentication & Accounts
-	•	JWT-based login/logout (short-lived & refresh tokens).
-	•	Forgot & Reset Password with OTP and Email.
-	•	Audit logs for all login/logout events.
-	•	Role-based access control (SuperAdmin, CD Admin, LD Employee, CCD User, etc.).
-	•	CD & CCD Tenants
-	•	CD tenants created by LD SuperAdmins.
-	•	CCD tenants created only by LD/CD Admins.
-	•	Domain-based validation for emails.
-	•	Plan limits enforced (employees & CCD users).
-	•	Employees & Users
-	•	CD Admins can manage their employees.
-	•	CCD users are one-login-per-customer.
-	•	Activities
-	•	CCD Users start an Activity (file upload workflow).
-	•	Files validated against CD-uploaded config from S3.
-	•	Automatic zipping of valid files and final storage in S3.
-	•	Email + Notification + Audit logging at each lifecycle event.
-	•	Calendar API for activity & file expiry tracking.
-	•	Tickets
-	•	Ticket creation & updates by CD/CCD employees.
-	•	Visibility restricted to creator + LD Employees.
-	•	Notifications & emails sent on ticket lifecycle events.
-	•	Reports
-	•	On-demand & scheduled (daily/weekly/monthly) reports.
-	•	Reports stored in S3 and emailed to requesters.
-	•	Access controlled by roles.
-	•	Audit & Notifications
-	•	Centralized audit trail (login, activity, ticket, report, downloads).
-	•	Notifications with levels: Good (Green), Warning (Yellow), Critical (Red).
-	•	Cron Jobs
-	•	Automated file expiry reminders:
-	•	4 weeks, 3 weeks, 2 weeks, 1 week, 24h, day-of, post-expiry (24h–96h).
-	•	Uses django-cron.
+## 🚀 Features
 
-⸻
+- **Authentication & Accounts**
+  - JWT-based login/logout (short-lived & refresh tokens).
+  - Forgot & Reset Password with OTP and Email.
+  - Audit logs for all login/logout events.
+  - Role-based access control (SuperAdmin, CD Admin, LD Employee, CCD User, etc.).
 
-📂 Project Structure
+- **CD & CCD Tenants**
+  - CD tenants created by LD SuperAdmins.
+  - CCD tenants created only by LD/CD Admins.
+  - Domain-based validation for emails.
+  - Plan limits enforced (employees & CCD users).
+
+- **Employees & Users**
+  - CD Admins can manage their employees.
+  - CCD users are one-login-per-customer.
+
+- **Activities**
+  - CCD Users start an Activity (file upload workflow).
+  - Files validated against CD-uploaded config from S3.
+  - Automatic zipping of valid files and final storage in S3.
+  - Email + Notification + Audit logging at each lifecycle event.
+  - Calendar API for activity & file expiry tracking.
+
+- **Tickets**
+  - Ticket creation & updates by CD/CCD employees.
+  - Visibility restricted to creator + LD Employees.
+  - Notifications & emails sent on ticket lifecycle events.
+
+- **Reports**
+  - On-demand & scheduled (daily/weekly/monthly) reports.
+  - Reports stored in S3 and emailed to requesters.
+  - Access controlled by roles.
+
+- **Audit & Notifications**
+  - Centralized audit trail (login, activity, ticket, report, downloads).
+  - Notifications with levels: Good (Green), Warning (Yellow), Critical (Red).
+
+- **Cron Jobs**
+  - Automated file expiry reminders:
+    - 4 weeks, 3 weeks, 2 weeks, 1 week, 24h, day-of, post-expiry (24h–96h).
+  - Uses `django-cron`.
+
+---
+
+## 📂 Project Structure
 
 lfras_phone/
 │── backend/
@@ -63,13 +71,12 @@ lfras_phone/
 │── requirements.txt
 │── manage.py
 
+---
 
-⸻
+## ⚙️ Installation
 
-⚙️ Installation
-
-1. Clone Repository
-
+### 1. Clone Repository
+```bash
 git clone https://github.com/<your-org>/lfras_phone.git
 cd lfras_phone
 
@@ -156,4 +163,3 @@ pytest
 📜 License
 
 © 2025 A-Zing Innovations. All rights reserved.
-
