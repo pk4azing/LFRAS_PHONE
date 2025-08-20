@@ -8,6 +8,8 @@ class ClientCD(models.Model):
     poc_email = models.EmailField()
     poc_phone = models.CharField(max_length=64, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    config_s3_path = models.CharField(max_length=512, blank=True)
+    email_template_s3_path = models.CharField(max_length=512, blank=True)
 
     class Meta:
         ordering = ["-created_at"]

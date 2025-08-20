@@ -5,6 +5,7 @@ from .models import ClientCD, ClientCCD, ClientCDSMTPConfig
 from .utils import gen_password, gen_tenant_id, email_with_tenant, s3_ensure_paths
 from apps.notifications.utils import add_notification
 from apps.audit.utils import add_audit
+import yaml
 
 User = get_user_model()
 
@@ -164,3 +165,97 @@ class ClientCDSMTPConfigSerializer(serializers.ModelSerializer):
             setattr(instance, k, v)
         instance.save()
         return instance
+    
+
+class CDYamlUploadSerializer(serializers.Serializer):
+    file = serializers.FileField()
+
+    def validate_file(self, f):
+        # 5MB cap (adjust if needed)
+        if f.size > 5 * 1024 * 1024:
+            raise serializers.ValidationError("File too large (max 5MB).")
+
+        name = f.name or "config.yaml"
+        ext = (name.rsplit(".", 1)[-1] or "").lower()
+        if ext not in ("yaml", "yml"):
+            raise serializers.ValidationError("Only .yaml or .yml files are allowed.")
+
+        # Parse once to catch syntax errors (also protects from upload of non-yaml)
+        try:
+            # IMPORTANT: read then reset cursor for storage to re-read stream
+            data = f.read()
+            yaml.safe_load(data)
+            f.seek(0)
+        except yaml.YAMLError as e:
+            raise serializers.ValidationError(f"Invalid YAML: {e}")
+
+        return f
+    
+
+class CDConfigSchemaValidator:
+    REQUIRED_TOP_LEVEL_KEYS = {"files"}  # e.g., files: [ {name, type, validations: [...]}, ... ]
+
+    @classmethod
+    def validate(cls, cfg: dict):
+        if not isinstance(cfg, dict):
+            raise serializers.ValidationError("Config root must be a mapping/object.")
+        missing = cls.REQUIRED_TOP_LEVEL_KEYS - set(cfg.keys())
+        if missing:
+            raise serializers.ValidationError(f"Missing required keys: {', '.join(sorted(missing))}")
+
+        files = cfg.get("files", [])
+        if not isinstance(files, list) or not files:
+            raise serializers.ValidationError("`files` must be a non-empty list.")
+        for i, item in enumerate(files, start=1):
+            if not isinstance(item, dict):
+                raise serializers.ValidationError(f"`files[{i}]` must be an object.")
+            if "name" not in item or "type" not in item:
+                raise serializers.ValidationError(f"`files[{i}]` must include `name` and `type`.")
+            # Optionally validate validations array
+            vals = item.get("validations", [])
+            if vals and not isinstance(vals, list):
+                raise serializers.ValidationError(f"`files[{i}].validations` must be a list.")
+            
+
+class CDEmailTemplateYamlUploadSerializer(serializers.Serializer):
+    file = serializers.FileField()
+
+    def validate_file(self, f):
+        if f.size > 5 * 1024 * 1024:
+            raise serializers.ValidationError("File too large (max 5MB).")
+        name = f.name or "email_template.yaml"
+        ext = (name.rsplit(".", 1)[-1] or "").lower()
+        if ext not in ("yaml", "yml"):
+            raise serializers.ValidationError("Only .yaml or .yml files are allowed.")
+        try:
+            data = f.read()
+            yaml.safe_load(data)
+            f.seek(0)
+        except yaml.YAMLError as e:
+            raise serializers.ValidationError(f"Invalid YAML: {e}")
+        return f
+
+
+class EmailTemplateSchemaValidator:
+    """
+    Minimal schema:
+    - subject: str (required)
+    - body_text: str (optional if body_html provided)
+    - body_html: str (optional if body_text provided)
+    - placeholders: list[str] (optional, for documentation of variables like {{tenant}}, {{period}}, etc.)
+    """
+    @classmethod
+    def validate(cls, cfg: dict):
+        if not isinstance(cfg, dict):
+            raise serializers.ValidationError("Template root must be a mapping/object.")
+        subject = cfg.get("subject")
+        body_text = cfg.get("body_text")
+        body_html = cfg.get("body_html")
+        if not subject or not isinstance(subject, str):
+            raise serializers.ValidationError("`subject` is required and must be a string.")
+        if not (isinstance(body_text, str) or isinstance(body_html, str)):
+            raise serializers.ValidationError("Provide at least one of `body_text` or `body_html`.")
+        ph = cfg.get("placeholders")
+        if ph is not None and not (isinstance(ph, list) and all(isinstance(x, str) for x in ph)):
+            raise serializers.ValidationError("`placeholders` must be a list of strings if provided.")
+        return cfg
