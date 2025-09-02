@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% block title %}Payments{% endblock %}
+{% block content %}
+    <div class="page-body">
+        <div class="card mb-3">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Payments</h5>
+                {% if request.user.role == "LAD" %}
+                    <div>
+                        <a class="btn btn-sm btn-primary" href="{% url 'payments:create_record' %}">Create Payment
+                            Record</a>
+                        <a class="btn btn-sm btn-outline-primary ms-2" href="{% url 'payments:create_transaction' %}">Create
+                            Transaction</a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card mb-3">
+            <div class="card-body">
+                <form method="get" class="row g-2 mb-3">
+                    <div class="col-md-3">
+                        <select name="evaluator" class="form-select">
+                            <option value="">All Evaluators</option>
+                            {% for e in evals %}
+                                <option value="{{ e.id }}"
+                                        {% if params.evaluator == e.id|stringformat:"s" %}selected{% endif %}>{{ e.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <select name="plan" class="form-select">
+                            <option value="">All Plans</option>
+                            <option value="enterprise" {% if params.plan == "enterprise" %}selected{% endif %}>
+                                Enterprise
+                            </option>
+                            <option value="professional" {% if params.plan == "professional" %}selected{% endif %}>
+                                Professional
+                            </option>
+                            <option value="essentials" {% if params.plan == "essentials" %}selected{% endif %}>
+                                Essentials
+                            </option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <select name="status" class="form-select">
+                            <option value="">All Status</option>
+                            <option value="pending" {% if params.status == "pending" %}selected{% endif %}>Pending
+                            </option>
+                            <option value="active" {% if params.status == "active" %}selected{% endif %}>Active</option>
+                            <option value="cancelled" {% if params.status == "cancelled" %}selected{% endif %}>
+                                Cancelled
+                            </option>
+                            <option value="expired" {% if params.status == "expired" %}selected{% endif %}>Expired
+                            </option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <input type="date" name="start" class="form-control" value="{{ params.start }}">
+                    </div>
+                    <div class="col-md-2">
+                        <input type="date" name="end" class="form-control" value="{{ params.end }}">
+                    </div>
+                    <div class="col-md-1">
+                        <input type="text" name="q" class="form-control" placeholder="Search" value="{{ params.q }}">
+                    </div>
+                    <div class="col-12 mt-1">
+                        <button class="btn btn-outline-secondary btn-sm">Filter</button>
+                        <a class="btn btn-link btn-sm" href="{% url 'payments:list' %}">Reset</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead>
+                        <tr>
+                            <th><a href="?{% if params %}{{ params.urlencode }}&{% endif %}sort=-created_at">Created</a>
+                            </th>
+                            <th>Evaluator</th>
+                            <th>Plan</th>
+                            <th class="text-end">Amount</th>
+                            <th>Status</th>
+                            <th>Period</th>
+                            <th>Sub ID</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {% for r in records %}
+                            <tr>
+                                <td class="small text-muted">{{ r.created_at|date:"Y-m-d H:i" }}</td>
+                                <td><a href="{% url 'payments:detail' r.id %}">{{ r.evaluator.name }}</a></td>
+                                <td>{{ r.get_plan_display }}</td>
+                                <td class="text-end">{{ r.amount_yearly }} {{ r.currency }}</td>
+                                <td><span
+                                        class="badge {% if r.status == 'active' %}bg-success{% elif r.status == 'pending' %}bg-warning text-dark{% else %}bg-secondary{% endif %}">{{ r.get_status_display }}</span>
+                                </td>
+                                <td class="small">{{ r.start_date }} → {{ r.end_date|default:"—" }}</td>
+                                <td class="small text-muted">{{ r.subscription_id|default:"—" }}</td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="7" class="text-center text-muted py-3">No payment records.</td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="page-body">
+  {% include "partials/_alerts.html" %}
+
+  <!-- Status Widgets -->
+  {% include "tickets/_widgets.html" %}
+
+  <div class="row">
+    <!-- Main column -->
+    <div class="col-xl-8">
+      <div class="card mb-3">
+        <div class="card-header">
+          <h5 class="mb-0">#{{ t.pk }} — {{ t.title }}</h5>
+        </div>
+        <div class="card-body">
+          <div class="row g-3 mb-3">
+            <div class="col-md-4">
+              <div class="small text-muted">Status</div>
+              <div class="fw-600">{{ t.get_status_display }}</div>
+            </div>
+            <div class="col-md-4">
+              <div class="small text-muted">Priority</div>
+              <div class="fw-600">{{ t.get_priority_display }}</div>
+            </div>
+            <div class="col-md-4">
+              <div class="small text-muted">Due date</div>
+              <div class="fw-600">{{ t.due_date|date:"Y-m-d"|default:"—" }}</div>
+            </div>
+          </div>
+
+          <div class="small text-muted mb-1">Description</div>
+          <p class="mb-0">{{ t.description|linebreaks }}</p>
+        </div>
+      </div>
+
+      <!-- Comments -->
+      <div class="card mb-3">
+        <div class="card-header">
+          <h6 class="mb-0">Comments</h6>
+        </div>
+        <div class="card-body">
+          {% for c in t.comments.all %}
+            <div class="mb-3">
+              <div class="small text-muted">
+                {{ c.author.first_name }} {{ c.author.last_name }} • {{ c.created_at|date:"Y-m-d H:i" }}
+              </div>
+              <div>{{ c.body|linebreaks }}</div>
+            </div>
+          {% empty %}
+            <p class="text-muted">No comments yet.</p>
+          {% endfor %}
+
+          <form method="post" action="{% url 'tickets:comment' t.pk %}" class="mt-3" novalidate>
+            {% csrf_token %}
+            <label class="form-label">Add a comment</label>
+            {{ comment_form.body }}
+            <button class="btn btn-primary mt-2">Add Comment</button>
+          </form>
+        </div>
+      </div>
+
+      <!-- Attachments -->
+      <div class="card">
+        <div class="card-header">
+          <h6 class="mb-0">Attachments</h6>
+        </div>
+        <div class="card-body">
+          {% for a in t.attachments.all %}
+            <div class="mb-2 d-flex align-items-center">
+              <i class="fa fa-paperclip me-2 text-muted"></i>
+              <a href="{{ a.file.url }}" target="_blank">
+                {{ a.file.name|slice:"-60:" }}
+              </a>
+              <span class="small text-muted ms-2">by {{ a.uploaded_by.first_name }}</span>
+            </div>
+          {% empty %}
+            <p class="text-muted">No files yet.</p>
+          {% endfor %}
+
+          <form method="post" action="{% url 'tickets:attach' t.pk %}" enctype="multipart/form-data" class="mt-3" novalidate>
+            {% csrf_token %}
+            <label class="form-label">Upload file</label>
+            {{ attach_form.file }}
+            <button class="btn btn-outline-primary mt-2">Upload</button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Side column -->
+    <div class="col-xl-4">
+      <div class="card">
+        <div class="card-header"><h6 class="mb-0">Update ticket</h6></div>
+        <div class="card-body">
+          <form method="post" action="{% url 'tickets:status' t.pk %}" novalidate>
+            {% csrf_token %}
+            <div class="mb-3">
+              <label class="form-label">Status</label>
+              {{ update_form.status }}
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Priority</label>
+              {{ update_form.priority }}
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Assignee</label>
+              {{ update_form.assignee }}
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Due date</label>
+              {{ update_form.due_date }}
+            </div>
+            <button class="btn btn-primary">Save</button>
+          </form>
+
+          <hr>
+
+          <div class="small">
+            <div><span class="text-muted">Assignee:</span> {{ t.assignee.first_name }} {{ t.assignee.last_name }}</div>
+            <div><span class="text-muted">Opened by:</span> {{ t.created_by.first_name }} {{ t.created_by.last_name }}</div>
+            {% if t.supplier %}
+            <div><span class="text-muted">Supplier:</span> {{ t.supplier.first_name }} {{ t.supplier.last_name }}</div>
+            {% endif %}
+            {% if t.evaluator %}
+            <div><span class="text-muted">Evaluator:</span> {{ t.evaluator.first_name }} {{ t.evaluator.last_name }}</div>
+            {% endif %}
+            <div><span class="text-muted">Created:</span> {{ t.created_at|date:"Y-m-d H:i" }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block title %}Create Payment Record{% endblock %}
+
+{% block content %}
+    <div class="page-body">
+        <div class="card card-form">
+            <div class="card-body">
+                <h5 class="mb-3">Create Payment Record</h5>
+
+                {% if form.non_field_errors %}
+                    <div class="alert alert-danger">
+                        {% for e in form.non_field_errors %}{{ e }}{% if not forloop.last %}<br>{% endif %}{% endfor %}
+                    </div>
+                {% endif %}
+
+                <form method="post" novalidate>
+                    {% csrf_token %}
+                    {% for field in form.visible_fields %}
+                        <div class="mb-3">
+                            <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                            {{ field }}
+                            {% if field.help_text %}
+                                <div class="form-text">{{ field.help_text }}</div>
+                            {% endif %}
+                            {% for e in field.errors %}
+                                <div class="invalid-feedback d-block">{{ e }}</div>
+                            {% endfor %}
+                        </div>
+                    {% endfor %}
+
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-primary" type="submit">Save</button>
+                        <a class="btn btn-outline-secondary" href="{% url 'payments:list' %}">Cancel</a>
+                    </div>
+                </form>
+
+            <script>
+              (function () {
+                // Try common ids/names from Django forms
+                var planEl = document.querySelector('#id_plan, select[name$="plan"]');
+                var amountEl = document.querySelector('#id_amount_yearly, input[name$="amount_yearly"]');
+                if (!planEl || !amountEl) return;
+
+                function extractPriceFromOption(opt) {
+                  if (!opt) return '';
+                  // Prefer data attribute if present
+                  var dataPrice = opt.getAttribute('data-price');
+                  if (dataPrice) return dataPrice;
+                  // Fallback: parse price from option text e.g. "Enterprise ($9,999/yr)"
+                  var txt = (opt.textContent || '').replace(/\s+/g, ' ');
+                  var match = txt.match(/\$([\d,]+(?:\.\d{1,2})?)/);
+                  return match ? match[1].replace(/,/g, '') : '';
+                }
+
+                function updateAmount() {
+                  var sel = planEl.options ? planEl.options[planEl.selectedIndex] : null;
+                  var price = extractPriceFromOption(sel);
+                  if (price) amountEl.value = price;
+                }
+
+                planEl.addEventListener('change', updateAmount);
+                // Initialize on load
+                if (document.readyState === 'loading') {
+                  document.addEventListener('DOMContentLoaded', updateAmount);
+                } else {
+                  updateAmount();
+                }
+
+                // Auto-fill end date based on start date + 1 year
+                var startDateEl = document.querySelector('#id_start_date');
+                var endDateEl = document.querySelector('#id_end_date');
+
+                function pad(n) {
+                  return n < 10 ? '0' + n : n;
+                }
+
+                function updateEndDate() {
+                  if (!startDateEl || !endDateEl) return;
+                  var startVal = startDateEl.value;
+                  if (!startVal) {
+                    endDateEl.value = '';
+                    return;
+                  }
+                  var startDate = new Date(startVal);
+                  if (isNaN(startDate.getTime())) {
+                    endDateEl.value = '';
+                    return;
+                  }
+                  var endDate = new Date(startDate);
+                  endDate.setFullYear(endDate.getFullYear() + 1);
+                  var yyyy = endDate.getFullYear();
+                  var mm = pad(endDate.getMonth() + 1);
+                  var dd = pad(endDate.getDate());
+                  endDateEl.value = yyyy + '-' + mm + '-' + dd;
+                }
+
+                if (startDateEl && endDateEl) {
+                  startDateEl.addEventListener('change', updateEndDate);
+                  if (document.readyState === 'loading') {
+                    document.addEventListener('DOMContentLoaded', updateEndDate);
+                  } else {
+                    updateEndDate();
+                  }
+                }
+              })();
+            </script>
+            </div>
+        </div>
+    </div>
+{% endblock %}

@@ -1,0 +1,125 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}Sign in · Lucid{% endblock %}</title>
+
+    <!-- Mofi required vendor styles -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'mofi/css/vendors/bootstrap.css' %}">
+    <link rel="stylesheet" href="{% static 'mofi/css/vendors/feather-icon.css' %}">
+    <!-- Mofi core styles -->
+    <link rel="stylesheet" href="{% static 'mofi/css/style.css' %}">
+    <link id="color" rel="stylesheet" href="{% static 'mofi/css/color-1.css' %}">
+    <link rel="stylesheet" href="{% static 'mofi/css/responsive.css' %}">
+    <!-- Optional project overrides -->
+    <link rel="stylesheet" href="{% static 'css/app.css' %}">
+  </head>
+  <body>
+    <div class="container-fluid">
+      <div class="row g-0 min-vh-100">
+        <!-- Left image -->
+        <div class="col-xl-5 d-none d-xl-block">
+          <img class="bg-img-cover bg-center w-100 h-100" src="{% static 'mofi/images/login/2.jpg' %}" alt="Lucid Compliances">
+        </div>
+
+        <!-- Login card -->
+        <div class="col-xl-7 p-0 d-flex align-items-center justify-content-center">
+          <div class="login-card login-dark w-100" style="max-width:520px;">
+            <div>
+              <div class="text-start mb-3">
+                <a class="logo" href="#">
+{#                  <img class="img-fluid for-light" src="{% static 'mofi/images/logo/logo.png' %}" alt="Lucid">#}
+                  <img class="img-fluid for-dark" src="{% static 'mofi/images/logo/logo_dark.png' %}" alt="Lucid">
+                </a>
+              </div>
+
+              <div class="login-main">
+                <form class="theme-form" method="post" novalidate>
+                  {% csrf_token %}
+
+                  <h4>Sign in to account</h4>
+                  <p>Enter your email &amp; password to login</p>
+
+                  {% if form.non_field_errors %}
+                    <div class="alert alert-danger" role="alert">
+                      {% for e in form.non_field_errors %}{{ e }}{% if not forloop.last %}<br>{% endif %}{% endfor %}
+                    </div>
+                  {% endif %}
+
+                  <div class="form-group">
+                    <label class="col-form-label" for="id_username">Email Address</label>
+                    <input class="form-control{% if form.username.errors %} is-invalid{% endif %}"
+                           type="email" id="id_username" name="username"
+                           placeholder="you@company.com" required autocomplete="username"
+                           value="{{ form.username.value|default_if_none:'' }}">
+                    {% if form.username.errors %}
+                      <div class="invalid-feedback">
+                        {% for e in form.username.errors %}{{ e }}{% if not forloop.last %}<br>{% endif %}{% endfor %}
+                      </div>
+                    {% endif %}
+                  </div>
+
+                  <div class="form-group">
+                    <label class="col-form-label d-flex justify-content-between" for="id_password">
+                      <span>Password</span>
+                      <a class="small text-decoration-none" href="{% url 'accounts:password_reset' %}">Forgot?</a>
+                    </label>
+                    <div class="form-input position-relative">
+                      <input class="form-control{% if form.password.errors %} is-invalid{% endif %}"
+                             type="password" id="id_password" name="password"
+                             placeholder="********" required autocomplete="current-password">
+                      <div class="show-hide" id="togglePwd"><span class="show"></span></div>
+                      {% if form.password.errors %}
+                        <div class="invalid-feedback d-block">
+                          {% for e in form.password.errors %}{{ e }}{% if not forloop.last %}<br>{% endif %}{% endfor %}
+                        </div>
+                      {% endif %}
+                    </div>
+                  </div>
+
+                  <div class="form-group mb-0">
+                    <div class="checkbox p-0">
+                      <input id="remember" name="remember" type="checkbox">
+                      <label class="text-muted" for="remember">Keep me signed in</label>
+                    </div>
+                    <button class="btn btn-primary btn-block w-100 mt-3" type="submit">Sign in</button>
+                  </div>
+
+                  <p class="mt-4 mb-0 text-center text-muted">© Lucid Compliances</p>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mofi required vendor scripts -->
+    <script src="{% static 'mofi/js/bootstrap/bootstrap.bundle.min.js' %}"></script>
+    <script src="{% static 'mofi/js/icons/feather-icon/feather.min.js' %}"></script>
+    <script src="{% static 'mofi/js/icons/feather-icon/feather-icon.js' %}"></script>
+    <script src="{% static 'mofi/js/config.js' %}"></script>
+    <!-- Mofi core script -->
+    <script src="{% static 'mofi/js/script.js' %}"></script>
+
+    <script>
+      // Toggle password visibility (works with Mofi show-hide markup)
+      (function(){
+        var box = document.getElementById('togglePwd');
+        var input = document.getElementById('id_password');
+        if(box && input){
+          box.addEventListener('click', function(){
+            var isPw = input.getAttribute('type') === 'password';
+            input.setAttribute('type', isPw ? 'text' : 'password');
+            this.classList.toggle('active');
+          });
+        }
+      })();
+    </script>
+  </body>
+</html>

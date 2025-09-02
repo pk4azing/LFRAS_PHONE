@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="page-body">
+  {% include "partials/_alerts.html" %}
+
+  <!-- Status Widgets -->
+  {% include "tickets/_widgets.html" %}
+
+  <div class="row">
+    <div class="col-xl-8">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">Create Ticket</h5>
+        </div>
+        <div class="card-body">
+          <form method="post" enctype="multipart/form-data" novalidate>
+            {% csrf_token %}
+
+            <div class="mb-3">
+              <label class="form-label">Title</label>
+              {{ form.title }}
+              {% if form.title.errors %}
+                <div class="invalid-feedback d-block">
+                  {% for e in form.title.errors %}{{ e }}{% if not forloop.last %}<br>{% endif %}{% endfor %}
+                </div>
+              {% endif %}
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Description</label>
+              {{ form.description }}
+              {% if form.description.errors %}
+                <div class="invalid-feedback d-block">
+                  {% for e in form.description.errors %}{{ e }}{% if not forloop.last %}<br>{% endif %}{% endfor %}
+                </div>
+              {% endif %}
+            </div>
+
+            <div class="row g-3">
+              <div class="col-md-4">
+                <label class="form-label">Priority</label>
+                {{ form.priority }}
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Due date</label>
+                {{ form.due_date }}
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Assignee</label>
+                {{ form.assignee }}
+              </div>
+            </div>
+
+            <div class="row g-3 mt-1">
+              <div class="col-md-6">
+                <label class="form-label">Evaluator</label>
+                {{ form.evaluator }}
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Supplier</label>
+                {{ form.supplier }}
+              </div>
+            </div>
+
+            {% if form.non_field_errors %}
+              <div class="alert alert-danger mt-3" role="alert">
+                {% for e in form.non_field_errors %}{{ e }}{% if not forloop.last %}<br>{% endif %}{% endfor %}
+              </div>
+            {% endif %}
+
+            <div class="mt-4 d-flex gap-2">
+              <button class="btn btn-primary">Create</button>
+              <a class="btn btn-outline-secondary" href="{% url 'tickets:list' %}">Cancel</a>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

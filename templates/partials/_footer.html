@@ -1,0 +1,15 @@
+<footer class="lc-footer border-top bg-white">
+  <div class="container-fluid d-flex justify-content-between align-items-center py-2 small text-muted">
+    <div>© {{ now|date:"Y" }} Lucid Compliances</div>
+    <div class="d-none d-sm-block">
+      <a href="{% url 'router:dashboard' %}" class="text-muted text-decoration-none me-3">Dashboard</a>
+      <a href="{% url 'notifications:inbox' %}" class="text-muted text-decoration-none me-3">Notifications</a>
+      <a href="{% url 'accounts:profile' %}" class="text-muted text-decoration-none">My Profile</a>
+    </div>
+  </div>
+</footer>
+
+<style>
+/* Mofi-like footer bar */
+.lc-footer{ position:relative; z-index:10; }
+</style>

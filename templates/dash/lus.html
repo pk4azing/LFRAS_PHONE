@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}Lucid Staff — Project Dashboard{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-start mb-3">
+  <div>
+    <h4 class="mb-1">Lucid Staff — Project Dashboard</h4>
+    <div class="text-muted small">
+      Range:
+      <a class="badge {% if range == 'day' %}bg-primary{% else %}bg-light text-dark{% endif %}" href="?range=day">Day</a>
+      <a class="badge {% if range == 'week' %}bg-primary{% else %}bg-light text-dark{% endif %}" href="?range=week">Week</a>
+      <a class="badge {% if range == 'month' %}bg-primary{% else %}bg-light text-dark{% endif %}" href="?range=month">Month</a>
+    </div>
+  </div>
+  <div class="d-flex gap-2">
+    <a class="btn btn-outline-primary" href="{% url 'tickets:list' %}">All Tickets</a>
+  </div>
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-12 col-md-3">
+    <div class="card h-100"><div class="card-body">
+      <div class="text-muted small">Total Evaluators</div>
+      <div class="fs-3">{{ total_evaluators|default:0 }}</div>
+    </div></div>
+  </div>
+  <div class="col-12 col-md-3">
+    <div class="card h-100"><div class="card-body">
+      <div class="text-muted small">Total Suppliers</div>
+      <div class="fs-3">{{ total_suppliers|default:0 }}</div>
+    </div></div>
+  </div>
+  <div class="col-12 col-md-3">
+    <div class="card h-100"><div class="card-body">
+      <div class="text-muted small">My Open Tickets</div>
+      <div class="fs-3">{{ my_open_tickets|default:0 }}</div>
+      <a class="small text-decoration-none" href="{% url 'tickets:list' %}?mine=1">View mine →</a>
+    </div></div>
+  </div>
+  <div class="col-12 col-md-3">
+    <div class="card h-100"><div class="card-body">
+      <div class="text-muted small">All Open Tickets</div>
+      <div class="fs-3">{{ all_open_tickets|default:0 }}</div>
+      <a class="small text-decoration-none" href="{% url 'tickets:list' %}?status=open">View open →</a>
+    </div></div>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-12 col-lg-8">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <h6 class="mb-0">Recent Activity Volume ({{ range }})</h6>
+          <span class="text-muted small">Activities started in range</span>
+        </div>
+        <div class="display-6">{{ recent_activities|default:0 }}</div>
+        <a class="small text-decoration-none" href="{% url 'activities:list' %}">Go to activities →</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-lg-4">
+    <div class="card h-100">
+      <div class="card-body">
+        <h6 class="mb-2">Quick Actions</h6>
+        <div class="d-flex flex-column gap-2">
+          <a class="btn btn-primary" href="{% url 'tickets:list' %}">Manage Tickets</a>
+          <a class="btn btn-outline-primary" href="{% url 'tenants:evaluators' %}">View Evaluators</a>
+          <a class="btn btn-outline-primary" href="{% url 'tenants:suppliers' %}">View Suppliers</a>
+          <a class="btn btn-outline-secondary" href="{% url 'preferences:site' %}">Site Settings</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}{% endblock %}

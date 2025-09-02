@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Thanks — Lucid Compliances{% endblock %}
+{% block content %}
+<div class="container py-5 text-center" style="max-width: 720px;">
+  <h1 class="mb-3">Thanks!</h1>
+  <p class="lead text-muted">We’ve received your message and will get back to you shortly.</p>
+  <div class="mt-4">
+    <a href="{% url 'marketing:marketing_home' %}" class="btn btn-outline-primary">Back to Home</a>
+  </div>
+</div>
+{% endblock %}

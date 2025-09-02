@@ -1,0 +1,182 @@
+{% extends "base.html" %}
+{% block title %}Lucid Admin — Project Dashboard{% endblock %}
+
+{% block content %}
+    <div class="page-body">
+        <div class="container-fluid default-dash">
+
+            <div class="d-flex justify-content-between align-items-start mb-3">
+                <div>
+                    <h4 class="mb-1">Lucid Admin — Project Dashboard</h4>
+                    <div class="text-muted small">
+                        Range:
+                        <a class="badge {% if range == 'day' %}bg-primary{% else %}bg-light text-dark{% endif %}"
+                           href="?range=day">Day</a>
+                        <a class="badge {% if range == 'week' %}bg-primary{% else %}bg-light text-dark{% endif %}"
+                           href="?range=week">Week</a>
+                        <a class="badge {% if range == 'month' %}bg-primary{% else %}bg-light text-dark{% endif %}"
+                           href="?range=month">Month</a>
+                    </div>
+                </div>
+                <div class="d-flex gap-2">
+                    <a class="btn btn-primary" href="{% url 'tenants:new_evaluator_user' %}">Create Evaluator</a>
+                    <a class="btn btn-outline-primary" href="{% url 'payments:create_record' %}">New Payment</a>
+                    <a class="btn btn-outline-secondary" href="{% url 'tickets:list' %}">Manage Tickets</a>
+                </div>
+            </div>
+
+            <div class="row g-3 mb-3">
+                <div class="col-12 col-md-3">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <div class="text-muted small">New Evaluators</div>
+                            <div class="fs-3">{{ eval_count|default:0 }}</div>
+                            <div class="progress" role="progressbar" aria-label="New Evaluators">
+                                <div class="progress-bar" style="width: 100%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-12 col-md-3">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <div class="text-muted small">Total Evaluators</div>
+                            <div class="fs-3">{{ eval_count|default:0 }}</div>
+                            <div class="text-muted small">Active across all plans</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-12 col-md-3">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <div class="text-muted small">Total Suppliers</div>
+                            <div class="fs-3">{{ supplier_count|default:0 }}</div>
+                            <div class="text-muted small">Linked to evaluators</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-12 col-md-3">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <div class="text-muted small">Lucid Employees</div>
+                            <div class="fs-3">{{ lucid_staff|default:0 }}</div>
+                            <div class="text-muted small">LAD + LUS</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row g-3 mb-3">
+                <div class="col-12 col-lg-4">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <div class="text-muted small">Total Revenue</div>
+                                <span class="badge bg-light text-dark">USD</span>
+                            </div>
+                            <div class="fs-2">${{ total_revenue|default:0 }}</div>
+                            <div class="text-muted small">MoM Growth: <span
+                                    class="fw-semibold">{{ growth_revenue }}</span></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-12 col-lg-4">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <div class="text-muted small">S3 Storage Used</div>
+                            <span class="badge bg-light text-dark">GB</span>
+                            <div class="fs-2">{{ total_bytes|default:0 }}</div>
+                            <div class="text-muted small">Sum of activity file sizes</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-12 col-lg-4">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <div class="text-muted small">Expiry Emails Sent ({{ range }})</div>
+                            <div class="fs-2">{{ notif_sent|default:0 }}</div>
+                            <a class="small text-decoration-none" href="{% url 'notifications:inbox' %}">Open inbox
+                                →</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row g-3 mb-3">
+                <div class="col-12 col-lg-6">
+                    <div class="card h-100">
+                        <div class="card-header pb-0">
+                            <h6 class="mb-1">Documents Uploaded (last 12 mo)</h6>
+                            <small class="text-muted">By month</small>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="ladDocsChart" height="120"></canvas>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-12 col-lg-6">
+                    <div class="card h-100">
+                        <div class="card-header pb-0">
+                            <h6 class="mb-1">Activities Started (last 12 mo)</h6>
+                            <small class="text-muted">By month</small>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="ladActsChart" height="120"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-body">
+                    <h6 class="mb-2">Quick Actions</h6>
+                    <div class="d-flex flex-wrap gap-2">
+                        <a class="btn btn-primary" href="{% url 'tenants:new_evaluator_user' %}">Create Evaluator</a>
+                        <a class="btn btn-outline-primary" href="{% url 'payments:create_record' %}">Create Payment</a>
+                        <a class="btn btn-outline-primary" href="{% url 'tickets:list' %}">Manage Tickets</a>
+                        <a class="btn btn-outline-secondary" href="{% url 'preferences:index' %}">Site Settings</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block extra_js %}
+    <script>
+        (function () {
+            // Feather icons (safe-guarded)
+            if (window.feather) {
+                try {
+                    feather.replace();
+                } catch (e) {
+                }
+            }
+
+            // Simple Chart.js line chart helpers
+            function mkChart(id, labels, data) {
+                var el = document.getElementById(id);
+                if (!el || !window.Chart) return;
+                try {
+                    new Chart(el.getContext('2d'), {
+                        type: 'line',
+                        data: {
+                            labels: labels || [],
+                            datasets: [{data: data || [], fill: false, tension: 0.3}]
+                        },
+                        options: {
+                            responsive: true,
+                            plugins: {legend: {display: false}},
+                            scales: {y: {beginAtZero: true}}
+                        }
+                    });
+                } catch (e) {
+                }
+            }
+
+            // Expecting chart_labels, chart_docs, chart_acts from view; guarded fallbacks
+            mkChart('ladDocsChart', {{ chart_labels|default:"[]"|safe }}, {{ chart_docs|default:"[]"|safe }});
+            mkChart('ladActsChart', {{ chart_labels|default:"[]"|safe }}, {{ chart_acts|default:"[]"|safe }});
+        })();
+    </script>
+{% endblock %}

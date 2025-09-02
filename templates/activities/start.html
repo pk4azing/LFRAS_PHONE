@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Start Activity{% endblock %}
+
+{% block content %}
+<div class="card card-form">
+  <div class="card-body">
+    <h5 class="mb-3">Start an Activity</h5>
+
+    <form method="post" novalidate class="row g-3">
+      {% csrf_token %}
+      <div class="col-md-6">
+        <label class="form-label" for="id_evaluator">Evaluator</label>
+        {{ form.evaluator.as_widget(attrs={'class':'form-select'}) }}
+        {% for e in form.evaluator.errors %}
+          <div class="invalid-feedback d-block">{{ e }}</div>
+        {% endfor %}
+      </div>
+      <div class="col-md-6">
+        <label class="form-label" for="id_supplier">Supplier</label>
+        {{ form.supplier.as_widget(attrs={'class':'form-select'}) }}
+        {% for e in form.supplier.errors %}
+          <div class="invalid-feedback d-block">{{ e }}</div>
+        {% endfor %}
+      </div>
+
+      <div class="col-12 d-flex gap-2">
+        <button class="btn btn-primary" type="submit">Start</button>
+        <a class="btn btn-outline-secondary" href="{% url 'activities:list' %}">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

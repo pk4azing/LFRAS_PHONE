@@ -1,0 +1,42 @@
+{% block title %}Lucid Compliances{% endblock %}
+{% block content %}
+<div class="py-5 text-center">
+  <h1 class="display-5 fw-bold">Lucid Compliances</h1>
+  <p class="lead text-muted mx-auto" style="max-width: 760px;">
+    Vendor & supplier compliance, simplified — Evaluator and Supplier portals, automated document requests,
+    and real‑time tracking.
+  </p>
+  <div class="mt-4">
+    <a href="{% url 'accounts:login' %}" class="btn btn-primary btn-lg">Sign in</a>
+    <a href="{% url 'marketing:pricing' %}" class="btn btn-outline-secondary btn-lg ms-2">See Pricing</a>
+  </div>
+</div>
+
+<hr class="my-5">
+<div class="row g-4">
+  <div class="col-md-4">
+    <div class="card h-100 shadow-sm">
+      <div class="card-body">
+        <h5 class="card-title">Evaluator Portal</h5>
+        <p class="card-text">Onboard suppliers, request documents, and monitor compliance health.</p>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card h-100 shadow-sm">
+      <div class="card-body">
+        <h5 class="card-title">Supplier Portal</h5>
+        <p class="card-text">Upload certificates, respond to requests, and maintain status in one place.</p>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card h-100 shadow-sm">
+      <div class="card-body">
+        <h5 class="card-title">Enterprise‑grade</h5>
+        <p class="card-text">Secure storage, role‑based access, and audit logging built‑in.</p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

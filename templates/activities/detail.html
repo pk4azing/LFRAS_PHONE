@@ -1,0 +1,257 @@
+{% extends "base.html" %}
+{% block title %}Activity #{{ a.id }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-start mb-3">
+  <div>
+    <h3 class="mb-1">Activity #{{ a.id }}</h3>
+    <div class="text-muted small">
+      Evaluator: {{ a.evaluator.name }} • Supplier: {{ a.supplier.name }}
+    </div>
+  </div>
+  <div class="d-flex gap-2">
+    <a class="btn btn-sm btn-outline-secondary" href="{% url 'activities:list' %}">Back to Activities</a>
+  </div>
+</div>
+
+<!-- Meta + counters -->
+<div class="row g-3 mb-3">
+  <div class="col-md-3">
+    <div class="card shadow-sm h-100">
+      <div class="card-body">
+        <div class="text-muted small">Status</div>
+        <div class="fs-5">
+          {% if a.status == 'IN_PROGRESS' %}<span class="badge text-bg-warning">In Progress</span>
+          {% elif a.status == 'COMPLETED' %}<span class="badge text-bg-success">Completed</span>
+          {% elif a.status == 'CANCELLED' %}<span class="badge text-bg-secondary">Cancelled</span>
+          {% else %}{{ a.status }}{% endif %}
+        </div>
+        <div class="small mt-2">
+          Started: {% if a.started_at %}{{ a.started_at|date:"Y-m-d H:i" }}{% else %}—{% endif %}<br>
+          By: {% if a.started_by %}{{ a.started_by.email }}{% else %}—{% endif %}
+        </div>
+        {% if a.ended_at %}
+        <div class="small mt-2">
+          Ended: {{ a.ended_at|date:"Y-m-d H:i" }}<br>
+          By: {% if a.ended_by %}{{ a.ended_by.email }}{% else %}—{% endif %}
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-9">
+    <div class="card shadow-sm h-100">
+      <div class="card-body">
+        <div class="row text-center">
+          <div class="col-6 col-md-3 mb-3">
+            <div class="text-muted small">Total Files</div>
+            <div class="fs-3">{{ a.total_files }}</div>
+          </div>
+          <div class="col-6 col-md-3 mb-3">
+            <div class="text-muted small">Valid</div>
+            <div class="fs-3">{{ a.valid_files }}</div>
+          </div>
+          <div class="col-6 col-md-3 mb-3">
+            <div class="text-muted small">Failed</div>
+            <div class="fs-3">{{ a.failed_files }}</div>
+          </div>
+          <div class="col-6 col-md-3 mb-3">
+            <div class="text-muted small">Re‑uploads</div>
+            <div class="fs-3">{{ a.reuploaded_files }}</div>
+          </div>
+        </div>
+        {% if request.user.role == 'SUS' and a.status == 'IN_PROGRESS' and a.failed_files == 0 %}
+        <form method="post" action="{% url 'activities:end' a.id %}" onsubmit="return confirm('End activity and finalize ZIP?');" class="mt-2">
+          {% csrf_token %}
+          <button class="btn btn-sm btn-success">End Activity</button>
+        </form>
+        {% elif request.user.role == 'SUS' and a.status == 'IN_PROGRESS' and a.failed_files > 0 %}
+        <div class="alert alert-warning mt-2 mb-0">Fix failed files before ending the activity.</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SUS upload (AJAX) -->
+{% if request.user.role == 'SUS' and a.status == 'IN_PROGRESS' %}
+<div class="card shadow-sm mb-3">
+  <div class="card-body">
+    <h6 class="mb-3">Upload a file</h6>
+    <form id="upload-form" class="row g-2">
+      {% csrf_token %}
+      <div class="col-md-8">
+        <input class="form-control" type="file" name="file" required id="file-input">
+      </div>
+      <div class="col-md-4 d-grid">
+        <button class="btn btn-primary" type="submit" id="upload-btn">Upload</button>
+      </div>
+    </form>
+
+    <div class="progress mt-3 d-none" id="upload-progress-wrap">
+      <div class="progress-bar" role="progressbar" id="upload-progress" style="width:0%">0%</div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- Files table -->
+<div class="card shadow-sm">
+  <div class="card-body">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <h6 class="mb-0">Files</h6>
+      <div class="small text-muted">Latest first</div>
+    </div>
+
+    <div class="table-responsive">
+      <table class="table table-hover align-middle" id="files-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Original Name</th>
+            <th>Size</th>
+            <th>Status</th>
+            <th>Uploaded</th>
+            <th class="text-end">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for f in files %}
+          <tr data-file-id="{{ f.id }}">
+            <td>{{ forloop.counter }}</td>
+            <td>{{ f.original_name }}</td>
+            <td>
+              {% if f.file_size %}
+                {{ f.file_size|filesizeformat }}
+              {% else %}—{% endif %}
+            </td>
+            <td>
+              <span class="file-status-badge badge
+                {% if f.status == 'VALID_OK' %}text-bg-success
+                {% elif f.status == 'VALID_FAILED' %}text-bg-danger
+                {% elif f.status == 'VALIDATING' %}text-bg-warning
+                {% else %}text-bg-secondary{% endif %}">
+                {% if f.status == 'VALID_OK' %}Valid
+                {% elif f.status == 'VALID_FAILED' %}Failed
+                {% elif f.status == 'VALIDATING' %}Validating
+                {% elif f.status == 'UPLOADING' %}Uploading
+                {% else %}{{ f.status }}{% endif %}
+              </span>
+              {% if f.failure_reason %}
+                <div class="small text-danger file-failure-reason">{{ f.failure_reason }}</div>
+              {% else %}
+                <div class="small text-danger file-failure-reason"></div>
+              {% endif %}
+            </td>
+            <td class="small text-muted">{{ f.uploaded_at|date:"Y-m-d H:i" }}</td>
+            <td class="text-end">
+              <div class="btn-group btn-group-sm" role="group">
+                {% if f.status == 'VALID_OK' %}
+                  <a class="btn btn-outline-primary" href="{% url 'activities:download_file' f.id %}">Download</a>
+                {% endif %}
+
+                {% if request.user.role == 'SUS' and a.status == 'IN_PROGRESS' %}
+                  <!-- Re-upload always allowed for SUS while in progress -->
+                  <form method="post" enctype="multipart/form-data" action="{% url 'activities:reupload' a.id f.id %}">
+                    {% csrf_token %}
+                    <label class="btn btn-outline-secondary mb-0">
+                      Re‑upload <input type="file" name="file" class="d-none" onchange="this.form.submit()">
+                    </label>
+                  </form>
+
+                  {% if f.status != 'VALID_OK' %}
+                  <form method="post" action="{% url 'activities:delete_file' a.id f.id %}" onsubmit="return confirm('Delete this file?');">
+                    {% csrf_token %}
+                    <button class="btn btn-outline-danger">Delete</button>
+                  </form>
+                  {% endif %}
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="6" class="text-muted">No files yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function(){
+  // CSRF
+  function getCookie(name){
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(';').shift();
+    return '';
+  }
+  function csrf(){ return getCookie('csrftoken'); }
+
+  // Upload AJAX with progress
+  const form = document.getElementById('upload-form');
+  if(form){
+    const fileInput = document.getElementById('file-input');
+    const btn = document.getElementById('upload-btn');
+    const wrap = document.getElementById('upload-progress-wrap');
+    const bar = document.getElementById('upload-progress');
+
+    form.addEventListener('submit', function(e){
+      e.preventDefault();
+      if(!fileInput.files.length) return;
+
+      const data = new FormData();
+      data.append('file', fileInput.files[0]);
+
+      btn.disabled = true;
+      wrap.classList.remove('d-none');
+      bar.style.width = '0%'; bar.textContent = '0%';
+
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', '{% url "activities:upload" a.id %}');
+      xhr.setRequestHeader('X-CSRFToken', csrf());
+      xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+
+      xhr.upload.onprogress = function(evt){
+        if(evt.lengthComputable){
+          const pct = Math.round((evt.loaded/evt.total)*100);
+          bar.style.width = pct + '%';
+          bar.textContent = pct + '%';
+        }
+      };
+      xhr.onload = function(){ window.location.reload(); };
+      xhr.onerror = function(){ alert('Upload failed. Please try again.'); btn.disabled = false; };
+      xhr.send(data);
+    });
+  }
+
+  // Poll statuses every 5s
+  function updateRow(f){
+    const row = document.querySelector(`[data-file-id="${f.id}"]`);
+    if(!row) return;
+    const badge = row.querySelector('.file-status-badge');
+    const reason = row.querySelector('.file-failure-reason');
+    if(badge){
+      if(f.status === 'VALID_OK'){ badge.className='file-status-badge badge text-bg-success'; badge.textContent='Valid'; }
+      else if(f.status === 'VALID_FAILED'){ badge.className='file-status-badge badge text-bg-danger'; badge.textContent='Failed'; }
+      else if(f.status === 'VALIDATING'){ badge.className='file-status-badge badge text-bg-warning'; badge.textContent='Validating'; }
+      else if(f.status === 'UPLOADING'){ badge.className='file-status-badge badge text-bg-secondary'; badge.textContent='Uploading'; }
+      else { badge.className='file-status-badge badge text-bg-secondary'; badge.textContent=f.status; }
+    }
+    if(reason){ reason.textContent = f.reason || ''; }
+  }
+
+  function poll(){
+    fetch('{% url "activities:status_json" a.id %}', {headers:{'X-Requested-With':'XMLHttpRequest'}})
+      .then(r=>r.json()).then(json=>{
+        if(json && json.files){ json.files.forEach(updateRow); }
+      }).catch(()=>{}).finally(()=>{ setTimeout(poll, 5000); });
+  }
+  setTimeout(poll, 5000);
+})();
+</script>
+{% endblock %}

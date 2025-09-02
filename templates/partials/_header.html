@@ -1,0 +1,67 @@
+{% load form_extras %}
+<header class="lc-topbar border-bottom bg-white">
+  <div class="container-fluid d-flex align-items-center justify-content-between" style="height:56px;">
+
+    <!-- Left: Sidebar toggle (mobile) + Brand -->
+    <div class="d-flex align-items-center gap-2">
+      <button class="btn btn-sm btn-outline-secondary d-md-none" id="lcSidebarToggle" aria-label="Toggle menu">☰</button>
+{#      <a href="{% url 'router:role_redirect' %}" class="navbar-brand m-0 p-0 fw-bold text-decoration-none text-dark">#}
+{#        Lucid#}
+{#      </a>#}
+      <span class="vr d-none d-md-inline mx-2"></span>
+      <div class="fw-semibold d-none d-sm-block small text-muted">
+        {% block topbar_title %}{% endblock %}
+      </div>
+    </div>
+
+    <!-- Right: Actions -->
+    <div class="d-flex align-items-center gap-2">
+
+      <!-- Notifications (bell) -->
+      <a class="btn btn-sm btn-outline-primary position-relative" href="{% url 'notifications:inbox' %}" aria-label="Notifications">
+        <!-- simple bell shape using inline SVG to avoid extra icon packs -->
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" class="me-1">
+          <path d="M8 16a2 2 0 0 0 1.985-1.75H6.015A2 2 0 0 0 8 16Zm.104-14a3.001 3.001 0 0 0-2.9 2.196A4.5 4.5 0 0 0 1.5 8v2.086l-.854 1.707A.5.5 0 0 0 1.09 12h13.82a.5.5 0 0 0 .444-.707L14.5 10.086V8a4.5 4.5 0 0 0-3.704-4.42A3.001 3.001 0 0 0 8.104 2Z"/>
+        </svg>
+        <span>Notifications</span>
+        {% if unread_notifications %}
+          <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+            {{ unread_notifications }}
+          </span>
+        {% endif %}
+      </a>
+
+      <!-- Profile dropdown -->
+      <div class="dropdown">
+        <button class="btn btn-sm btn-outline-secondary dropdown-toggle d-flex align-items-center" data-bs-toggle="dropdown" aria-expanded="false">
+          <span class="avatar-circle me-2">{{ request.user.email|first|upper }}</span>
+          <span class="d-none d-sm-inline">
+            {% if request.user.first_name %}
+              {{ request.user.first_name }}
+            {% elif request.user.username %}
+              {{ request.user.username }}
+            {% else %}
+              {{ request.user.email | split:"@"|first }}
+            {% endif %}
+          </span>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+{#          <li class="dropdown-header text-muted small">Role: {{ request.user.role }}</li>#}
+          <li><a class="dropdown-item" href="{% url 'accounts:profile' %}">My Profile</a></li>
+          <li><a class="dropdown-item" href="{% url 'accounts:change_password' %}">Change Password</a></li>
+          <li><hr class="dropdown-divider"></li>
+          <li><a class="dropdown-item" href="{% url 'accounts:logout' %}">Logout</a></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</header>
+
+<style>
+/***** Mofi-like Topbar tweaks *****/
+.lc-topbar .avatar-circle{
+  display:inline-flex; align-items:center; justify-content:center;
+  width:22px; height:22px; border-radius:50%;
+  background: var(--lc-primary, #2c7be5); color:#fff; font-size:12px; font-weight:600;
+}
+</style>

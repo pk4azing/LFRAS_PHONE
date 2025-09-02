@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Supplier — Project Dashboard{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-start mb-3">
+  <div>
+    <h4 class="mb-1">Supplier — Project Dashboard</h4>
+    <div class="text-muted small">
+      Range:
+      <a class="badge {% if range == 'day' %}bg-primary{% else %}bg-light text-dark{% endif %}" href="?range=day">Day</a>
+      <a class="badge {% if range == 'week' %}bg-primary{% else %}bg-light text-dark{% endif %}" href="?range=week">Week</a>
+      <a class="badge {% if range == 'month' %}bg-primary{% else %}bg-light text-dark{% endif %}" href="?range=month">Month</a>
+    </div>
+  </div>
+  <div class="d-flex gap-2">
+    <a class="btn btn-primary" href="{% url 'activities:create' %}">Start Activity</a>
+    <a class="btn btn-outline-primary" href="{% url 'activities:list' %}">My Activities</a>
+  </div>
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-12 col-md-4">
+    <div class="card h-100"><div class="card-body">
+      <div class="text-muted small">Activities ({{ range }})</div>
+      <div class="fs-3">{{ activities_count|default:0 }}</div>
+      <a class="small text-decoration-none" href="{% url 'activities:list' %}">View →</a>
+    </div></div>
+  </div>
+  <div class="col-12 col-md-4">
+    <div class="card h-100"><div class="card-body">
+      <div class="text-muted small">Files Valid (OK)</div>
+      <div class="fs-3">{{ files_ok|default:0 }}</div>
+      <div class="text-muted small">Across activities in range</div>
+    </div></div>
+  </div>
+  <div class="col-12 col-md-4">
+    <div class="card h-100"><div class="card-body">
+      <div class="text-muted small">Files Failed</div>
+      <div class="fs-3">{{ files_fail|default:0 }}</div>
+      <div class="text-muted small">Requires re‑upload</div>
+    </div></div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-body">
+    <h6 class="mb-2">Quick Actions</h6>
+    <div class="d-flex flex-wrap gap-2">
+      <a class="btn btn-primary" href="{% url 'activities:create' %}">Start Activity</a>
+      <a class="btn btn-outline-primary" href="{% url 'activities:list' %}">View My Activities</a>
+      <a class="btn btn-outline-primary" href="{% url 'documents:list' %}?scope=mine">My Documents</a>
+      <a class="btn btn-outline-secondary" href="{% url 'tickets:create' %}">New Ticket</a>
+      <a class="btn btn-outline-secondary" href="{% url 'preferences:supplier' %}">Settings</a>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}{% endblock %}

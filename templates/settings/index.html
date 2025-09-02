@@ -1,0 +1,44 @@
+<!-- templates/settings/index.html -->
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+    <div class="page-body">
+        <div class="card mb-3">
+            <div class="card-header">
+                <h5 class="mb-0">{{ title }}</h5>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    {% if scope == "site" %}
+                        <div class="mb-3">
+                            <label class="form-label">Default From Email</label>
+                            {{ form.email_from }}
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Support Email</label>
+                            {{ form.support_email }}
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">S3 Base Prefix</label>
+                            {{ form.s3_base_prefix }}
+                            <div class="form-text">Example: <code>lucid/</code></div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Expiry reminder days (CSV)</label>
+                            {{ form.expiry_schedule }}
+                            <div class="form-text">Comma-separated. Example: <code>30,14,7,1</code></div>
+                        </div>
+                    {% else %}
+                        {{ form.as_p }}
+                    {% endif %}
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-primary">Save</button>
+                        <a class="btn btn-outline-secondary" href="{% url 'router:role_redirect' %}">Back</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+{% endblock %}

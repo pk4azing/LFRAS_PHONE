@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}Create Lucid User{% endblock %}
+
+{% block content %}
+  <div class="page-body">
+    <div class="container my-5">
+      <div class="row justify-content-center">
+        <div class="col-lg-8 col-xl-7">
+          <div class="card border-0 shadow-sm">
+            <div class="card-header bg-primary text-white py-3">
+              <h4 class="mb-0">Create Lucid User</h4>
+            </div>
+
+            <div class="card-body">
+              <form method="post" class="theme-form" novalidate>
+                {% csrf_token %}
+
+                {# top-level non-field errors #}
+                {% if form.non_field_errors %}
+                  <div class="alert alert-danger" role="alert">
+                    {% for e in form.non_field_errors %}{{ e }}{% if not forloop.last %}<br>{% endif %}{% endfor %}
+                  </div>
+                {% endif %}
+
+                <div class="row g-3">
+                  {% for field in form %}
+                    <div class="col-12">
+                      <div class="mb-3">
+                        <label class="form-label" for="{{ field.id_for_label }}">
+                          {{ field.label }}{% if field.field.required %}<span class="text-danger"> *</span>{% endif %}
+                        </label>
+                        {{ field }}
+                        {% if field.help_text %}
+                          <div class="form-text">{{ field.help_text }}</div>
+                        {% endif %}
+                        {% if field.errors %}
+                          <div class="invalid-feedback d-block">
+                            {% for error in field.errors %}{{ error }}{% if not forloop.last %}<br>{% endif %}{% endfor %}
+                          </div>
+                        {% endif %}
+                      </div>
+                    </div>
+                  {% endfor %}
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center mt-4">
+                  <a href="{% url 'accounts:staff' %}" class="btn btn-outline-secondary">Cancel</a>
+                  <button type="submit" class="btn btn-primary">Create User</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}

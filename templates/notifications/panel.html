@@ -1,0 +1,30 @@
+<div class="card">
+  <div class="card-header d-flex align-items-center justify-content-between">
+    <h6 class="mb-0">Notifications</h6>
+    <a class="small" href="{% url 'notifications:read_all' %}">Mark all read</a>
+  </div>
+  <div class="card-body p-2">
+
+  {% if notifications %}
+    <div class="list-group">
+      {% for n in notifications %}
+        <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-start{% if not n.read_at %} list-group-item-warning{% endif %}"
+           href="{% url 'notifications:read_go' n.pk %}">
+          <div class="ms-2 me-auto">
+            <div class="fw-bold">{{ n.title }}</div>
+            {% if n.body %}<div class="small text-muted">{{ n.body }}</div>{% endif %}
+            {% if n.link_url %}<div class="small"><code>{{ n.link_url }}</code></div>{% endif %}
+          </div>
+          <span class="badge bg-light text-dark rounded-pill">
+            {{ n.created_at|date:"Y-m-d H:i" }}
+          </span>
+        </a>
+      {% endfor %}
+    </div>
+    <div class="text-end mt-2">
+      <a class="small" href="{% url 'notifications:inbox' %}">View all →</a>
+    </div>
+  {% else %}
+    <div class="text-center text-muted py-2 small">No notifications yet.</div>
+  {% endif %}
+</div></div>

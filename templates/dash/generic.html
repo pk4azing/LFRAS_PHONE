@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="mb-3">
+  <h4 class="mb-1">Dashboard</h4>
+  <div class="text-muted small">No specific dashboard for your role yet.</div>
+</div>
+
+<div class="card">
+  <div class="card-body">
+    <p class="mb-2">Use the sidebar to navigate or try these quick actions:</p>
+    <div class="d-flex flex-wrap gap-2">
+      <a class="btn btn-primary" href="{% url 'router:dashboard' %}">Go Home</a>
+      <a class="btn btn-outline-primary" href="{% url 'tickets:list' %}">Tickets</a>
+      <a class="btn btn-outline-primary" href="{% url 'activities:list' %}">Activities</a>
+      <a class="btn btn-outline-secondary" href="{% url 'documents:list' %}">Documents</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,122 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <meta name="csrf-token" content="{{ csrf_token }}">
+    <title>{% block title %}LFRAS{% endblock %}</title>
+
+    <!-- Mofi core CSS (only confirmed path) -->
+    <link rel="stylesheet" href="{% static 'mofi/css/style.css' %}">
+
+    <!-- Project overrides (role colors, minor tweaks) -->
+    <link rel="stylesheet" href="{% static 'css/app.css' %}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@100;200;300;400;500;600;700;800;900&display=swap"
+          rel="stylesheet">
+
+    <!-- Vendor CSS -->
+    <link rel="stylesheet" href="{% static 'mofi/css/font-awesome.css' %}">
+    <link rel="stylesheet" href="{% static 'mofi/css/vendors/icofont.css' %}">
+    <link rel="stylesheet" href="{% static 'mofi/css/vendors/themify.css' %}">
+    <link rel="stylesheet" href="{% static 'mofi/css/vendors/flag-icon.css' %}">
+    <link rel="stylesheet" href="{% static 'mofi/css/vendors/feather-icon.css' %}">
+
+    <!-- Plugins CSS -->
+    <link rel="stylesheet" href="{% static 'mofi/css/vendors/slick.css' %}">
+    <link rel="stylesheet" href="{% static 'mofi/css/vendors/slick-theme.css' %}">
+    <link rel="stylesheet" href="{% static 'mofi/css/vendors/scrollbar.css' %}">
+    <link rel="stylesheet" href="{% static 'mofi/css/vendors/animate.css' %}">
+
+    <!-- Bootstrap + App CSS -->
+    <link rel="stylesheet" href="{% static 'mofi/css/vendors/bootstrap.css' %}">
+    <link rel="stylesheet" href="{% static 'mofi/css/style.css' %}">
+    <link id="color" rel="stylesheet" href="{% static 'mofi/css/color-1.css' %}" media="screen">
+    <link rel="stylesheet" href="{% static 'mofi/css/responsive.css' %}">
+
+
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="{{ role_theme_class|default:'' }} theme-{{ request.user.role|default:''|lower }}">
+
+{% if user.is_authenticated %}
+    <!-- Topbar -->
+    {% include "partials/_header.html" %}
+
+    <div class="app-shell d-flex">
+    <!-- Sidebar -->
+    {% include "partials/_sidebar.html" %}
+{% endif %}
+
+<!-- Main Content -->
+<main class="app-content flex-fill">
+    <div class="app-container container-fluid py-3">
+
+        {% block content %}{% endblock %}
+    </div>
+</main>
+{% if user.is_authenticated %}
+    </div>
+
+    <!-- Footer -->
+    {% include "partials/_footer.html" %}
+{% endif %}
+
+<!-- Core scripts (only confirmed path) -->
+<script src="{% static 'mofi/js/script.js' %}"></script>
+<script src="{% static 'mofi/js/jquery.min.js' %}"></script>
+<!-- If you don’t have that file, use the CDN for now: -->
+<!-- <script src="https://code.jquery.com/jquery-3.6.4.min.js" integrity="sha256-oP6HI9z1XaZNBrJURtCoUT5SUnxFr8s3BzRl+cbzUq8=" crossorigin="anonymous"></script> -->
+
+<!-- 2) Bootstrap bundle (needs Popper; bundle includes it) -->
+{#<script src="{% static 'mofi/js/bootstrap.bundle.min.js' %}"></script>#}
+
+<!-- 3) Any vendor plugins that depend on jQuery (Apexcharts, Feather, Perfect Scrollbar, etc) -->
+<script src="{% static 'mofi/js/icons/feather-icon/feather.min.js' %}"></script>
+<script src="{% static 'mofi/js/icons/feather-icon/feather-icon.js' %}"></script>
+<!-- Add other vendor scripts you actually use, in this section -->
+
+<!-- 4) Mofi core/init scripts (these often reference $) -->
+<script src="{% static 'mofi/js/config.js' %}"></script>
+<script src="{% static 'mofi/js/script.js' %}"></script>
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"
+        integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo="
+        crossorigin="anonymous"></script>
+
+<!-- Bootstrap 5 bundle (use CDN since you noted no local file) -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
+        crossorigin="anonymous"></script>
+
+<!-- Feather icons -->
+<script src="{% static 'mofi/js/icons/feather-icon/feather.min.js' %}"></script>
+<script src="{% static 'mofi/js/icons/feather-icon/feather-icon.js' %}"></script>
+
+<!-- Scrollbar -->
+<script src="{% static 'mofi/js/scrollbar/simplebar.js' %}"></script>
+<script src="{% static 'mofi/js/scrollbar/custom.js' %}"></script>
+
+<!-- Config & sidebar -->
+<script src="{% static 'mofi/js/config.js' %}"></script>
+<script src="{% static 'mofi/js/sidebar-menu.js' %}"></script>
+<script src="{% static 'mofi/js/sidebar-pin.js' %}"></script>
+
+<!-- Slick carousel (header sliders, etc.) -->
+<script src="{% static 'mofi/js/slick/slick.min.js' %}"></script>
+<script src="{% static 'mofi/js/slick/slick.js' %}"></script>
+<script src="{% static 'mofi/js/header-slick.js' %}"></script>
+
+<!-- Theme scripts -->
+<script src="{% static 'mofi/js/script.js' %}"></script>
+<script src="{% static 'mofi/js/theme-customizer/customizer.js' %}"></script>
+
+{% block extra_js %}{% endblock %}
+
+{% if debug %}
+    {% load django_browser_reload %}
+    {% django_browser_reload_script %}
+{% endif %}
+</body>
+</html>

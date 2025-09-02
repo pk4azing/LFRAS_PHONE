@@ -1,0 +1,210 @@
+{% load static %}
+<aside id="lcSidebar" aria-hidden="true" class="lc-sidebar bg-white border-end">
+    <div id="lcSidebarOverlay" class="d-md-none"
+         style="position:fixed;inset:0;background:rgba(0,0,0,.25);display:none;z-index:1039;"></div>
+    <div class="lc-sidebar-head d-flex align-items-center justify-content-between px-3" style="height:56px;">
+        <a href="{% url 'router:dashboard' %}" class="navbar-brand fw-bold text-decoration-none">Lucid</a>
+        <button type="button" class="btn btn-sm btn-outline-secondary d-md-none" id="lcSidebarClose" aria-label="Close">
+            ✕
+        </button>
+    </div>
+
+    <nav class="lc-sidebar-body">
+        <ul class="nav flex-column px-2">
+
+            <!-- Common -->
+            <li class="nav-item">
+                <a class="nav-link {% if request.resolver_match.url_name == 'index' or request.resolver_match.url_name == 'dashboard' or request.resolver_match.url_name == 'role_redirect' %}active{% endif %}"
+                   href="{% url 'router:dashboard' %}">Dashboard</a>
+            </li>
+
+            {% if request.user.role == 'LAD' or request.user.role == 'LUS' %}
+                <li class="nav-item mt-2 text-uppercase small text-muted px-2">Lucid Admin</li>
+                <li class="nav-item"><a class="nav-link" href="{% url 'tenants:evaluator_detail' %}">Evaluators</a></li>
+                <li class="nav-item"><a class="nav-link" href="{% url 'payments:list' %}">Payments & Transactions</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {% if request.resolver_match.namespace == 'tickets' %}active{% endif %}"
+                       href="{% url 'tickets:list' %}">Tickets</a>
+                </li>
+                {% if request.user.role == 'LAD' %}
+                    <li class="nav-item"><a class="nav-link" href="{% url 'accounts:staff' %}">Lucid Staff</a></li>
+                {% endif %}
+                <li class="nav-item"><a class="nav-link" href="{% url 'preferences:index' %}">Settings</a></li>
+            {% endif %}
+
+            {% if request.user.role == 'EAD' or request.user.role == 'EVS' %}
+                <li class="nav-item mt-2 text-uppercase small text-muted px-2">Evaluator</li>
+                <li class="nav-item"><a class="nav-link" href="{% url 'tenants:suppliers' %}">Suppliers</a></li>
+                <li class="nav-item"><a class="nav-link" href="{% url 'activities:list' %}">Activities</a></li>
+                <li class="nav-item">
+                    <a class="nav-link {% if request.resolver_match.namespace == 'tickets' %}active{% endif %}"
+                       href="{% url 'tickets:list' %}">Tickets</a>
+                </li>
+                <li class="nav-item"><a class="nav-link" href="{% url 'documents:list' %}">Documents</a></li>
+                <li class="nav-item"><a class="nav-link" href="{% url 'preferences:evaluator' %}">Settings</a></li>
+            {% endif %}
+
+            {% if request.user.role == 'SUS' %}
+                <li class="nav-item mt-2 text-uppercase small text-muted px-2">Supplier</li>
+                <li class="nav-item"><a class="nav-link" href="{% url 'activities:list' %}">My Activities</a></li>
+                <li class="nav-item"><a class="nav-link" href="{% url 'documents:list' %}?scope=mine">My Documents</a>
+                </li>
+                <li class="nav-item"><a class="nav-link" href="{% url 'preferences:supplier' %}">Settings</a></li>
+            {% endif %}
+
+            <li class="nav-item mt-3"><a class="nav-link" href="{% url 'notifications:inbox' %}">Notifications</a></li>
+            <li class="nav-item"><a class="nav-link" href="{% url 'accounts:profile' %}">My Profile</a></li>
+            <li class="nav-item"><a class="nav-link" href="{% url 'accounts:logout' %}">Logout</a></li>
+        </ul>
+    </nav>
+</aside>
+
+<style>
+    /* Layout + simple “Mofi-like” sidebar */
+    .lc-sidebar {
+        position: fixed;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        width: 260px;
+        z-index: 1040;
+    }
+
+    .page-body {
+        margin-left: 260px;
+        min-height: 100vh;
+        background: #f7f7fb;
+    }
+
+    /* Links */
+    .lc-sidebar .nav-link {
+        color: #444;
+        padding: .5rem .75rem;
+        border-radius: .5rem;
+    }
+
+    .lc-sidebar .nav-link:hover {
+        background: #f1f3f5;
+    }
+
+    .lc-sidebar .nav-link.active {
+        color: var(--lc-primary, #2c7be5);
+        background: rgba(44, 123, 229, 0.08);
+        font-weight: 600;
+    }
+
+    /* Mobile */
+    @media (max-width: 767.98px) {
+        .lc-sidebar {
+            transform: translateX(-100%);
+            transition: transform .2s ease;
+            background: #fff;
+        }
+
+        .lc-sidebar.lc-open {
+            transform: translateX(0);
+        }
+
+        .page-body {
+            margin-left: 0;
+        }
+    }
+
+    /* Overlay visibility tied to sidebar open state */
+    #lcSidebarOverlay.lc-show {
+        display: block;
+    }
+
+    /* Animate desktop too */
+    @media (min-width: 768px) {
+        .lc-sidebar {
+            transition: transform .2s ease;
+        }
+
+        body.lc-sidebar-collapsed .lc-sidebar {
+            transform: translateX(-100%);
+        }
+
+        body.lc-sidebar-collapsed .page-body {
+            margin-left: 0;
+        }
+    }
+</style>
+<script>
+    (function () {
+        const sidebar = document.getElementById('lcSidebar');
+        const overlay = document.getElementById('lcSidebarOverlay');
+        const closeBtn = document.getElementById('lcSidebarClose');
+
+        if (!sidebar) return;
+
+        const OPEN_CLASS = 'lc-open';
+        const OVERLAY_SHOW = 'lc-show';
+        const BODY_COLLAPSED = 'lc-sidebar-collapsed';
+        const LS_KEY = 'lc:sidebar:collapsed';
+
+        function openSidebar() {
+            sidebar.classList.add(OPEN_CLASS);
+            overlay && overlay.classList.add(OVERLAY_SHOW);
+            document.body.classList.remove(BODY_COLLAPSED);
+        }
+
+        function closeSidebar() {
+            sidebar.classList.remove(OPEN_CLASS);
+            overlay && overlay.classList.remove(OVERLAY_SHOW);
+        }
+
+        function toggleSidebar() {
+            if (window.matchMedia('(max-width: 767.98px)').matches) {
+                // Mobile: slide in/out
+                if (sidebar.classList.contains(OPEN_CLASS)) {
+                    closeSidebar();
+                } else {
+                    openSidebar();
+                }
+            } else {
+                // Desktop: collapse/expand layout
+                const willCollapse = !document.body.classList.contains(BODY_COLLAPSED);
+                document.body.classList.toggle(BODY_COLLAPSED, willCollapse);
+                try {
+                    localStorage.setItem(LS_KEY, willCollapse ? '1' : '');
+                } catch (e) {
+                }
+            }
+        }
+
+        // Hook up triggers anywhere in the DOM
+        document.addEventListener('click', function (e) {
+            const t = e.target.closest('[data-lc-toggle="sidebar"], #lcSidebarOpen');
+            if (t) {
+                e.preventDefault();
+                toggleSidebar();
+            }
+        });
+
+        // Close actions
+        overlay && overlay.addEventListener('click', closeSidebar);
+        closeBtn && closeBtn.addEventListener('click', closeSidebar);
+
+        // Escape key closes on mobile
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape' && sidebar.classList.contains(OPEN_CLASS)) closeSidebar();
+        });
+
+        // Apply persisted desktop state
+        try {
+            const saved = localStorage.getItem(LS_KEY);
+            if (saved === '1') document.body.classList.add(BODY_COLLAPSED);
+        } catch (e) {
+        }
+
+        // On resize, make sure overlay state is sane
+        window.addEventListener('resize', function () {
+            if (!window.matchMedia('(max-width: 767.98px)').matches) {
+                // Leaving mobile viewport: ensure mobile overlay is hidden
+                closeSidebar();
+            }
+        });
+    })();
+</script>

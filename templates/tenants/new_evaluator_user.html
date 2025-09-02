@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Invite Evaluator User{% endblock %}
+
+{% block content %}
+<div class="card card-form">
+  <div class="card-header">
+    <h5 class="mb-0">Invite Evaluator User</h5>
+  </div>
+  <div class="card-body">
+    <p class="text-muted mb-3">Create additional Evaluator Admin (EAD) or Evaluator Staff (EVS) users.</p>
+
+    {% if form.non_field_errors %}
+      <div class="alert alert-danger">
+        {% for e in form.non_field_errors %}{{ e }}{% if not forloop.last %}<br>{% endif %}{% endfor %}
+      </div>
+    {% endif %}
+
+    <form method="post" novalidate>
+      {% csrf_token %}
+      {% for field in form.visible_fields %}
+        <div class="mb-3">
+          <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+          {{ field }}
+          {% if field.help_text %}
+            <div class="form-text">{{ field.help_text }}</div>
+          {% endif %}
+          {% for e in field.errors %}
+            <div class="invalid-feedback d-block">{{ e }}</div>
+          {% endfor %}
+        </div>
+      {% endfor %}
+
+      <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-primary">Create User</button>
+        <a href="{% url 'router:ead_dashboard' %}" class="btn btn-outline-secondary">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

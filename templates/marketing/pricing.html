@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Pricing — Lucid Compliances{% endblock %}
+{% block content %}
+
+<div class="text-center my-5">
+  <h1 class="fw-bold">Pricing</h1>
+  <p class="lead text-muted">Choose the plan that fits your compliance operations.</p>
+</div>
+
+<div class="row g-4">
+  {% for code, plan in plans %}
+    <div class="col-md-4">
+      <div class="card h-100 shadow-sm border-0">
+        <div class="card-body d-flex flex-column">
+          <div class="text-uppercase small text-muted">{{ plan.name }}</div>
+          <h3 class="mt-1 mb-3">${{ plan.price_per_year_usd|floatformat:0 }} <small class="text-muted fs-6">/ year</small></h3>
+
+          <ul class="list-unstyled small mb-3">
+            <li><strong>Vendors/Customers:</strong>
+              {% if plan.max_vendors_customers %}Up to {{ plan.max_vendors_customers }}
+              {% else %}Unlimited{% endif %}
+            </li>
+            <li><strong>Internal users (EAD/EVS):</strong>
+              {% if plan.max_internal_users %}Up to {{ plan.max_internal_users }}
+              {% else %}Unlimited{% endif %}
+            </li>
+            <li><strong>Languages:</strong> {{ plan.languages }}</li>
+            <li><strong>Integrations:</strong> {{ plan.integrations|title }}</li>
+            <li><strong>Support:</strong> {{ plan.support|title }}</li>
+            <li><strong>Storage:</strong> {{ plan.storage }}</li>
+          </ul>
+
+          <hr>
+
+          <h6 class="text-muted">Highlights</h6>
+          <ul class="small">
+            {% for f in plan.features %}
+              <li>{{ f }}</li>
+            {% endfor %}
+          </ul>
+
+          {% if plan.notes %}
+          <div class="alert alert-info small mt-auto">{{ plan.notes }}</div>
+          {% endif %}
+
+          <div class="d-grid gap-2 mt-3">
+            {% if code == "ENTERPRISE" %}
+              <a href="{% url 'accounts:login' %}" class="btn btn-primary">Contact Sales</a>
+            {% elif code == "PROFESSIONAL" %}
+              <a href="{% url 'accounts:login' %}" class="btn btn-outline-primary">Get Started</a>
+            {% else %}
+              <a href="{% url 'accounts:login' %}" class="btn btn-outline-secondary">Try Essentials</a>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  {% endfor %}
+</div>
+
+<div class="text-center my-5 small text-muted">
+  All plans include secure 256‑bit encrypted cloud storage and audit logging.
+</div>
+
+{% endblock %}

@@ -1,0 +1,14 @@
+Subject: {{ subject }}
+
+Hello,
+
+The following document is approaching expiry.
+
+Title: {{ doc.title }}
+Expires on: {{ doc.expiry_date }}
+Evaluator: {{ doc.evaluator.name|default:"-" }}
+Supplier: {{ doc.supplier.name|default:"-" }}
+
+View: {{ site_url }}/documents/{{ doc.id }}/
+
+— Lucid Compliances

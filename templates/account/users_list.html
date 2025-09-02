@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Lucid Staff · Lucid{% endblock %}
+
+{% block content %}
+  <div class="page-body">
+    <div class="container-fluid py-3">
+      <div class="row align-items-center mb-3">
+        <div class="col">
+          <h4 class="mb-0">Lucid Staff</h4>
+          <small class="text-muted">Total: {{ total }}</small>
+        </div>
+        <div class="col-auto">
+          <a class="btn btn-primary" href="{% url 'accounts:create_lucid_user' %}"><i data-feather="user-plus" class="me-1"></i>Add Staff</a>
+        </div>
+      </div>
+
+      <form method="get" class="row g-2 align-items-center mb-3">
+        <div class="col-md-6">
+          <div class="input-group">
+            <span class="input-group-text"><i data-feather="search"></i></span>
+            <input type="search" name="q" value="{{ q }}" class="form-control" placeholder="Search email, name, phone…">
+          </div>
+        </div>
+        <div class="col-md-3">
+          <select class="form-select" name="status" onchange="this.form.submit()">
+            <option value="" {% if not status %}selected{% endif %}>All statuses</option>
+            <option value="active" {% if status == 'active' %}selected{% endif %}>Active</option>
+            <option value="inactive" {% if status == 'inactive' %}selected{% endif %}>Inactive</option>
+          </select>
+        </div>
+        <div class="col-auto">
+          <button class="btn btn-outline-secondary" type="submit">Filter</button>
+        </div>
+      </form>
+
+      <!-- Card Grid -->
+      <div class="row g-4">
+        {% for u in page_obj %}
+          <div class="col-12 col-sm-6 col-md-4 col-xl-3">
+            <div class="card h-100 shadow-sm border-0">
+              <div class="card-body text-center">
+                <div class="position-relative d-inline-block mb-3">
+                  {% if u.profile_photo %}
+                    <img src="{{ u.profile_photo.url }}" class="img-70 rounded-circle shadow border border-3" alt="{{ u.get_full_name|default:u.email }}">
+                  {% else %}
+                    <img src="{% static 'mofi/images/user/user.png' %}" class="img-70 rounded-circle shadow border border-3" alt="Avatar">
+                  {% endif %}
+                  {% if u.is_active %}
+                    <span class="position-absolute top-0 start-100 translate-middle p-1 bg-success border border-light rounded-circle"></span>
+                  {% else %}
+                    <span class="position-absolute top-0 start-100 translate-middle p-1 bg-secondary border border-light rounded-circle"></span>
+                  {% endif %}
+                </div>
+
+                <h5 class="mb-1">{{ u.get_full_name|default:u.email }}</h5>
+                <div class="mb-3">
+                  <span class="badge rounded-pill bg-light text-dark border">
+                    {{ u.role }}
+                  </span>
+                </div>
+
+                <ul class="list-unstyled small text-muted mb-3 text-start mx-auto" style="max-width: 220px;">
+                  <li><i data-feather="mail" class="me-1"></i>{{ u.email }}</li>
+                  <li><i data-feather="phone" class="me-1"></i>{{ u.phone|default:"—" }}</li>
+                </ul>
+
+                <div class="btn-group w-100" role="group">
+                  <a class="btn btn-outline-primary btn-sm flex-fill" href="{% url 'accounts:user_edit' u.id %}"><i data-feather="edit-2" class="me-1"></i>Edit</a>
+                  <form method="post" action="{% url 'accounts:user_toggle_active' u.id %}" class="flex-fill">
+                    {% csrf_token %}
+                    {% if u.is_active %}
+                      <button type="submit" class="btn btn-outline-danger btn-sm w-100"><i data-feather="slash" class="me-1"></i>Deactivate</button>
+                    {% else %}
+                      <button type="submit" class="btn btn-outline-success btn-sm w-100"><i data-feather="check" class="me-1"></i>Activate</button>
+                    {% endif %}
+                  </form>
+                </div>
+              </div>
+              <div class="card-footer d-flex justify-content-between align-items-center small text-muted bg-light-subtle border-0">
+                <span>{% if u.is_active %}<span class="badge bg-success">Active</span>{% else %}<span class="badge bg-secondary">Inactive</span>{% endif %}</span>
+                <span title="Created">Joined {{ u.created_at|date:"Y-m-d" }}</span>
+              </div>
+            </div>
+          </div>
+        {% empty %}
+          <div class="col-12">
+            <div class="card">
+              <div class="card-body text-center text-muted py-5">No staff found.</div>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+
+      {% if page_obj.paginator.num_pages > 1 %}
+        <div class="pt-3 d-flex justify-content-center">
+          <nav>
+            <ul class="pagination mb-0">
+              {% if page_obj.has_previous %}
+                <li class="page-item"><a class="page-link" href="?q={{ q }}&status={{ status }}&page={{ page_obj.previous_page_number }}">Prev</a></li>
+              {% else %}
+                <li class="page-item disabled"><span class="page-link">Prev</span></li>
+              {% endif %}
+
+              <li class="page-item disabled"><span class="page-link">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span></li>
+
+              {% if page_obj.has_next %}
+                <li class="page-item"><a class="page-link" href="?q={{ q }}&status={{ status }}&page={{ page_obj.next_page_number }}">Next</a></li>
+              {% else %}
+                <li class="page-item disabled"><span class="page-link">Next</span></li>
+              {% endif %}
+            </ul>
+          </nav>
+        </div>
+      {% endif %}
+
+    </div>
+  </div>
+{% endblock %}

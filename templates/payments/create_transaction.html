@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}Create Transaction{% endblock %}
+
+{% block content %}
+    <div class="page-body">
+        <div class="card card-form">
+            <div class="card-body">
+                <h5 class="mb-3">Create Transaction</h5>
+
+                {% if form.non_field_errors %}
+                    <div class="alert alert-danger">
+                        {% for e in form.non_field_errors %}{{ e }}{% if not forloop.last %}<br>{% endif %}{% endfor %}
+                    </div>
+                {% endif %}
+
+                <form method="post" novalidate>
+                    {% csrf_token %}
+                    {% for field in form.visible_fields %}
+                        <div class="mb-3" data-field="{{ field.name }}">
+                            <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                            {{ field }}
+                            {% if field.help_text %}
+                                <div class="form-text">{{ field.help_text }}</div>
+                            {% endif %}
+                            {% for e in field.errors %}
+                                <div class="invalid-feedback d-block">{{ e }}</div>
+                            {% endfor %}
+                        </div>
+                    {% endfor %}
+
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-primary" type="submit">Save</button>
+                        <a class="btn btn-outline-secondary" href="{% url 'payments:list' %}">Cancel</a>
+                    </div>
+                    <script>
+                        (function () {
+                            var form = document.currentScript.closest('form');
+                            if (!form) return;
+
+                            function qField(name, selectors) {
+                                var scope = form.querySelector('[data-field="' + name + '"]');
+                                if (!scope) return null;
+                                return scope.querySelector(selectors);
+                            }
+
+                            var recordEl = qField('record', 'select, input');
+                            var amountEl = qField('amount', 'input');
+
+                            if (!recordEl || !amountEl) return;
+
+                            function parsePrice(text) {
+                                // Match currencies like $9,999.99, ₹9,999, €1.234,56 -> normalize commas
+                                var m = text.match(/[\$€£₹]\s*([0-9][0-9,]*(?:\.[0-9]{1,2})?/);
+                                if (!m) return null;
+                                return m[1].replace(/,/g, '');
+                            }
+
+                            function syncAmount() {
+                                var labelText = '';
+                                if (recordEl.tagName === 'SELECT') {
+                                    var opt = recordEl.options[recordEl.selectedIndex];
+                                    labelText = opt ? (opt.textContent || '') : '';
+                                } else {
+                                    // For an <input list> or similar; fall back to its value
+                                    labelText = recordEl.value || '';
+                                }
+                                var price = parsePrice(labelText);
+                                if (price !== null && amountEl) {
+                                    amountEl.value = price;
+                                }
+                            }
+
+                            // Initial fill and when record changes
+                            syncAmount();
+                            recordEl.addEventListener('change', syncAmount);
+                        })();
+                    </script>
+                </form>
+            </div>
+        </div>
+    </div>
+{% endblock %}

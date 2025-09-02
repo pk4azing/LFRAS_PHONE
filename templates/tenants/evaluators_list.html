@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Evaluators · Lucid{% endblock %}
+
+{% block content %}
+    <div class="page-body">
+        <div class="container-fluid py-3">
+            <div class="row align-items-center mb-3">
+                <div class="col">
+                    <h4 class="mb-0">Evaluators</h4>
+                    <small class="text-muted">Total: {{ total }}</small>
+                </div>
+                <div class="col-auto">
+                    <a class="btn btn-primary" href="{% url 'tenants:new_evaluator' %}">Create Evaluator</a>
+                </div>
+            </div>
+
+            <form method="get" class="row g-2 align-items-center mb-3">
+                <div class="col-sm-8 col-lg-6">
+                    <div class="input-group">
+                        <span class="input-group-text"><i data-feather="search"></i></span>
+                        <input type="search" name="q" value="{{ q }}" class="form-control"
+                               placeholder="Search name, POC, email, city, state, subdomain…">
+                    </div>
+                </div>
+                <div class="col-auto">
+                    <button class="btn btn-outline-secondary" type="submit">Search</button>
+                </div>
+            </form>
+
+            <div class="card">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0 align-middle">
+                            <thead class="table-light">
+                            <tr>
+                                <th>Name</th>
+                                <th>POC</th>
+                                <th>Email</th>
+                                <th>Subdomain</th>
+                                <th>City/State</th>
+                                <th>Created</th>
+                                <th></th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {% for ev in page_obj %}
+                                <tr>
+                                    <td class="fw-semibold">{{ ev.name }}</td>
+                                    <td>{{ ev.poc_name|default:"—" }}</td>
+                                    <td>{{ ev.poc_email|default:"—" }}</td>
+                                    <td><code>{{ ev.subdomain|default:"—" }}</code></td>
+                                    <td>{{ ev.city|default:"" }}{% if ev.city and ev.state %}
+                                        , {% endif %}{{ ev.state|default:"" }}</td>
+                                    <td>{{ ev.created_at|date:"Y-m-d" }}</td>
+                                    <td class="text-end">
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            {# Add Supplier button with role gating #}
+                                            {% if request.user.role == 'EAD' or request.user.role == 'EVS'  %}
+                                                <a class="btn btn-outline-primary"
+                                                   href="{% url 'tenants:new_supplier' %}?e={{ ev.id }}">Add Supplier</a>
+                                            {% else %}
+                                                <a class="btn btn-outline-primary disabled opacity-50 pe-none"
+                                                   href="#" tabindex="-1" aria-disabled="true"
+                                                   data-bs-toggle="tooltip" data-bs-placement="top"
+                                                   title="You don't have permission to create suppliers.">Add Supplier</a>
+                                            {% endif %}
+
+                                            {# Add User button with role gating #}
+                                            {% if request.user.role == 'EAD' or request.user.role == 'EVS' %}
+                                                <a class="btn btn-outline-secondary"
+                                                   href="{% url 'tenants:new_evaluator_user' %}?e={{ ev.id }}">Add User</a>
+                                            {% else %}
+                                                <a class="btn btn-outline-secondary disabled opacity-50 pe-none"
+                                                   href="#" tabindex="-1" aria-disabled="true"
+                                                   data-bs-toggle="tooltip" data-bs-placement="top"
+                                                   title="You don't have permission to create users.">Add User</a>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% empty %}
+                                <tr>
+                                    <td colspan="7" class="text-center py-4 text-muted">No evaluators found.</td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                {% if page_obj.paginator.num_pages > 1 %}
+                    <div class="card-footer">
+                        <nav>
+                            <ul class="pagination mb-0">
+                                {% if page_obj.has_previous %}
+                                    <li class="page-item"><a class="page-link"
+                                                             href="?q={{ q }}&page={{ page_obj.previous_page_number }}">Prev</a>
+                                    </li>
+                                {% else %}
+                                    <li class="page-item disabled"><span class="page-link">Prev</span></li>
+                                {% endif %}
+
+                                <li class="page-item disabled"><span
+                                        class="page-link">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+                                </li>
+
+                                {% if page_obj.has_next %}
+                                    <li class="page-item"><a class="page-link"
+                                                             href="?q={{ q }}&page={{ page_obj.next_page_number }}">Next</a>
+                                    </li>
+                                {% else %}
+                                    <li class="page-item disabled"><span class="page-link">Next</span></li>
+                                {% endif %}
+                            </ul>
+                        </nav>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+{% endblock %}
+{% block extra_js %}
+
+<script>
+  (function () {
+    var triggers = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    triggers.map(function (el) { try { return new bootstrap.Tooltip(el); } catch (e) { return null; } });
+  })();
+</script>
+{% endblock %}

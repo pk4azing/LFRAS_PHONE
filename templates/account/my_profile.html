@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+{% block title %}My Profile{% endblock %}
+
+{% block content %}
+    <div class="page-body">
+        <div class="container-fluid">
+            <!-- Page header / breadcrumb -->
+            <div class="page-title">
+                <div class="row">
+                    <div class="col-6">
+                        <h3>Edit Profile</h3>
+                    </div>
+                    <div class="col-6">
+                        <ol class="breadcrumb">
+                            <li class="breadcrumb-item"><a href="{% url 'router:dashboard' %}">Dashboard</a></li>
+                            <li class="breadcrumb-item active">My Profile</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row g-4">
+                <!-- Left column: avatar / account card -->
+                <div class="col-12 col-lg-4">
+                    <div class="card">
+                        <div class="card-body text-center">
+                            <div class="mb-3">
+                                {% if request.user.profile_photo %}
+                                    <img src="{{ request.user.profile_photo.url }}" alt="Avatar" class="rounded-circle"
+                                         style="width:96px;height:96px;object-fit:cover;">
+                                {% else %}
+                                    <div class="rounded-circle bg-light d-inline-flex align-items-center justify-content-center"
+                                         style="width:96px;height:96px;">
+                                        <span class="fw-bold text-muted">{{ request.user.first_name|default:request.user.last_name  }}</span>
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <h6 class="mb-1">{{ request.user.first_name }}, {{ request.user.last_name }}</h6>
+                            <div class="text-muted small mb-3">{{ request.user.email|cut:"@" }}</div>
+
+                            <form method="post" enctype="multipart/form-data" action="{% url 'accounts:my_profile' %}">
+                                {% csrf_token %}
+                                <div class="mb-3 text-start">
+                                    <label class="form-label">Profile photo</label>
+                                    <input type="file" name="profile_photo" class="form-control"/>
+                                    {% if request.user.profile_photo and form.remove_photo %}
+                                        <div class="form-check mt-2">
+                                            {{ form.remove_photo }}
+                                            <label class="form-check-label" for="{{ form.remove_photo.id_for_label }}">Remove
+                                                current</label>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                <button class="btn btn-primary w-100" name="_save_avatar" value="1">Update Photo
+                                </button>
+                            </form>
+
+                            <hr>
+                            <ul class="list-unstyled text-start small mb-0">
+                                <li class="d-flex justify-content-between"><span
+                                        class="text-muted">Role</span><span>{{ request.user.role }}</span></li>
+                                {% if request.user.evaluator %}
+                                    <li class="d-flex justify-content-between"><span class="text-muted">Evaluator</span><span>{{ request.user.evaluator.name }}</span>
+                                    </li>
+                                {% endif %}
+                                {% if request.user.supplier %}
+                                    <li class="d-flex justify-content-between"><span
+                                            class="text-muted">Supplier</span><span>{{ request.user.supplier.name }}</span>
+                                    </li>
+                                {% endif %}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right column: edit form -->
+                <div class="col-12 col-lg-8">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">Profile Details</h5>
+                        </div>
+                        <div class="card-body">
+                            <form method="post" enctype="multipart/form-data" action="{% url 'accounts:my_profile' %}">
+                                {% csrf_token %}
+
+                                {% if form.non_field_errors %}
+                                    <div class="alert alert-danger" role="alert">
+                                        {{ form.non_field_errors }}
+                                    </div>
+                                {% endif %}
+
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label" for="{{ form.first_name.id_for_label }}">First
+                                            name</label>
+                                        {{ form.first_name }}
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label" for="{{ form.last_name.id_for_label }}">Last
+                                            name</label>
+                                        {{ form.last_name }}
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label" for="{{ form.phone.id_for_label }}">Phone</label>
+                                        {{ form.phone }}
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label" for="{{ form.country.id_for_label }}">Country</label>
+                                        {{ form.country }}
+                                    </div>
+                                    <div class="col-12">
+                                        <label class="form-label" for="{{ form.address_line1.id_for_label }}">Address
+                                            line 1</label>
+                                        {{ form.address_line1 }}
+                                    </div>
+                                    <div class="col-12">
+                                        <label class="form-label" for="{{ form.address_line2.id_for_label }}">Address
+                                            line 2</label>
+                                        {{ form.address_line2 }}
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label" for="{{ form.city.id_for_label }}">City</label>
+                                        {{ form.city }}
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label" for="{{ form.state.id_for_label }}">State</label>
+                                        {{ form.state }}
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label" for="{{ form.postal_code.id_for_label }}">Postal
+                                            code</label>
+                                        {{ form.postal_code }}
+                                    </div>
+                                </div>
+
+                                <div class="d-flex gap-2 mt-4">
+                                    <button class="btn btn-primary" type="submit" name="_save_profile" value="1">Save
+                                        Changes
+                                    </button>
+                                    <a href="{% url 'accounts:change_password' %}" class="btn btn-outline-secondary">Change
+                                        Password</a>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

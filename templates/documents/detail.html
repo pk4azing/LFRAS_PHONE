@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Document — {{ doc.title }}{% endblock %}
+{% block content %}
+<div class="card shadow-sm mb-3">
+  <div class="card-header">
+    <h5 class="mb-0">{{ doc.title }}</h5>
+  </div>
+  <div class="card-body">
+    <div class="row">
+      <div class="col-md-4">
+        <div class="text-muted small">Expiry Date</div>
+        <div class="fs-6 fw-semibold">{% if doc.expiry_date %}{{ doc.expiry_date|date:"Y-m-d" }}{% else %}—{% endif %}</div>
+      </div>
+      <div class="col-md-4">
+        <div class="text-muted small">Evaluator</div>
+        <div class="fs-6 fw-semibold">{% if doc.evaluator %}{{ doc.evaluator.name }}{% else %}—{% endif %}</div>
+      </div>
+      <div class="col-md-4">
+        <div class="text-muted small">Supplier</div>
+        <div class="fs-6 fw-semibold">{% if doc.supplier %}{{ doc.supplier.name }}{% else %}—{% endif %}</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% if doc.description %}
+<div class="card shadow-sm">
+  <div class="card-header">
+    <h6 class="mb-0">Description</h6>
+  </div>
+  <div class="card-body">
+    <div>{{ doc.description|linebreaks }}</div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

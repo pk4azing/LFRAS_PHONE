@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Validation Rules — {{ supplier.name }}{% endblock %}
+{% block content %}
+<div class="card mb-3">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <h5 class="mb-0">Validation Rules — {{ supplier.name }}</h5>
+    <a class="btn btn-sm btn-primary" href="{% url 'validation:rule_create' supplier.id %}">New Rule</a>
+  </div>
+</div>
+<div class="card">
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead>
+          <tr><th>Expected Name</th><th>Keywords</th><th>Allowed Ext</th><th>Required</th><th>Active</th><th></th></tr>
+        </thead>
+        <tbody>
+          {% for r in rules %}
+          <tr>
+            <td>{{ r.expected_name }}</td>
+            <td class="small text-muted">{{ r.required_keywords|join:", " }}</td>
+            <td class="small text-muted">{{ r.allowed_extensions|join:", " }}</td>
+            <td>{{ r.required|yesno:"Yes,No" }}</td>
+            <td>{{ r.active|yesno:"Yes,No" }}</td>
+            <td class="text-end">
+              <a class="btn btn-sm btn-outline-secondary" href="{% url 'validation:rule_edit' r.id %}">Edit</a>
+              <a class="btn btn-sm btn-outline-danger" href="{% url 'validation:rule_delete' r.id %}"
+                 onclick="return confirm('Delete this rule?');">Delete</a>
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="6" class="text-center text-muted py-3">No rules yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
