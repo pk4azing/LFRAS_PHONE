@@ -55,6 +55,7 @@ class FileStatus(models.TextChoices):
     VALIDATING = "validating", "Validation In Progress"
     VALID_OK = "valid_ok", "Validation Successful"
     VALID_FAILED = "valid_failed", "Validation Failed"
+    UPLOAD_FAILED = "upload_failed", "Upload Failed"
 
 
 class Activity(models.Model):
@@ -117,8 +118,19 @@ class ActivityFile(models.Model):
     uploaded_at = models.DateTimeField(auto_now_add=True)
     validated_at = models.DateTimeField(null=True, blank=True)
 
+    # Optional expiry date (set by uploader when required by rules)
+    expires_on = models.DateField(null=True, blank=True)
+
+    @property
+    def is_expired(self) -> bool:
+        return bool(self.expires_on and self.expires_on < timezone.localdate())
+
     class Meta:
         ordering = ["uploaded_at"]
+        indexes = [
+            models.Index(fields=["expires_on"]),
+            models.Index(fields=["status", "uploaded_at"]),
+        ]
 
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)

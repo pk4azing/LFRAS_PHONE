@@ -1,33 +1,48 @@
+from __future__ import annotations
+
 from django import forms
 
-
-class ActivityFileUploadForm(forms.Form):
-    file = forms.FileField()
+from accounts.models import Roles, User
+from tenants.models import Evaluator, Supplier
 
 
 class ActivityStartForm(forms.Form):
-    """Supplier (SUS) starts an activity; if the user is SUS we can infer evaluator/supplier in the view."""
+    """
+    Form used on Activities → Start page.
+    We pass the logged-in user so we can scope available Evaluators/Suppliers.
+    """
+    evaluator = forms.ModelChoiceField(
+        queryset=Evaluator.objects.none(), label="Evaluator"
+    )
+    supplier = forms.ModelChoiceField(
+        queryset=Supplier.objects.none(), label="Supplier"
+    )
 
-    evaluator = forms.ModelChoiceField(queryset=None, required=True)
-    supplier = forms.ModelChoiceField(queryset=None, required=True)
-
-    def __init__(self, *args, **kwargs):
-        user = kwargs.pop("user", None)
+    def __init__(self, *args, user: User | None = None, **kwargs):
         super().__init__(*args, **kwargs)
+        self.user = user
 
-        # Lazy imports to avoid circulars
-        from tenants.models import Evaluator, Supplier
+        # Defaults (for LAD/LUS etc.)
+        self.fields["evaluator"].queryset = Evaluator.objects.all().order_by("name")
+        self.fields["supplier"].queryset = Supplier.objects.all().order_by("name")
 
-        self.fields["evaluator"].queryset = Evaluator.objects.all()
-        self.fields["supplier"].queryset = Supplier.objects.all()
+        # Supplier users can only start for their own supplier; evaluator may be
+        # restricted to the supplier's assigned evaluator if present.
+        if user is not None and user.role == Roles.SUS and user.supplier_id:
+            self.fields["supplier"].queryset = Supplier.objects.filter(id=user.supplier_id)
+            try:
+                sup = Supplier.objects.get(id=user.supplier_id)
+                if getattr(sup, "evaluator_id", None):
+                    self.fields["evaluator"].queryset = Evaluator.objects.filter(id=sup.evaluator_id)
+            except Supplier.DoesNotExist:
+                self.fields["evaluator"].queryset = Evaluator.objects.none()
 
-        # If SUS, preselect & lock choices to their own evaluator/supplier
-        if user and getattr(user, "role", None) == getattr(
-            __import__("accounts").accounts.models.Roles, "SUS"
-        ):
-            ev = getattr(user, "evaluator_id", None)
-            sp = getattr(user, "supplier_id", None)
-            if ev:
-                self.fields["evaluator"].queryset = Evaluator.objects.filter(id=ev)
-            if sp:
-                self.fields["supplier"].queryset = Supplier.objects.filter(id=sp)
+        # Simple styling so it matches your theme
+        for f in self.fields.values():
+            css = f.widget.attrs.get("class", "")
+            f.widget.attrs["class"] = (css + " form-control").strip()
+
+
+class ActivityFileUploadForm(forms.Form):
+    # keep here so the import in views works; adjust if you already have this elsewhere
+    file = forms.FileField()

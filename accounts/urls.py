@@ -64,7 +64,7 @@ urlpatterns = [
     path("verify-email/", VerifyEmailView.as_view(), name="verify_email"),
     path("resend-otp/", ResendOTPView.as_view(), name="resend_otp"),
     path("staff/", users_list, name="staff"),
-    path("staff/create/", create_lucid_user, name="create_lucid_user"),
+    path("staff/create/", create_lucid_user, name="create_staff"),
     path("staff/<int:pk>/edit/", create_lucid_user, name="user_edit"),
     path(
         "force-password-change/",

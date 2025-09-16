@@ -379,7 +379,7 @@ def ead_dashboard(request):
         expiring_week = Document.objects.filter(
             evaluator=ev,
             is_active=True,
-            expiry_date__range=(today, week_end),
+            expires_at__date__range=(today, week_end),
         ).count()
     else:
         expiring_week = 0
@@ -536,25 +536,77 @@ def sus_dashboard(request):
     except Exception:
         Document = None
 
+    # Activities in selected range for this supplier/evaluator
     act_count = (
         Activity.objects.filter(
-            evaluator=ev, supplier=sup, started_at__range=(start, end)
+            evaluator_id=ev.id,
+            supplier_id=sup.id,
+            started_at__range=(start, end),
         ).count()
         if Activity
         else 0
     )
-    files_count = (
+
+    # Files across activities for this supplier/evaluator, filtered by the file's uploaded timestamp
+    failed_statuses = []
+    if ActivityFile:
+        # Build failure set dynamically to avoid attribute errors
+        try:
+            failed_statuses = [ActivityFile.status.VALID_FAILED]  # if inner enum exists
+        except Exception:
+            from activities.models import FileStatus as _FS  # fallback if status is module-level
+            failed_statuses = [_FS.VALID_FAILED]
+        # Add UPLOAD_FAILED if present
+        try:
+            # handle both enum-on-model and module-level constant
+            failed_statuses.append(ActivityFile.FileStatus.UPLOAD_FAILED)
+        except Exception:
+            try:
+                from activities.models import FileStatus as _FS
+                if hasattr(_FS, "UPLOAD_FAILED"):
+                    failed_statuses.append(_FS.UPLOAD_FAILED)
+            except Exception:
+                pass
+
+    files_valid_ok = (
         ActivityFile.objects.filter(
-            activity__evaluator=ev, activity__supplier=sup
+            activity__evaluator_id=ev.id,
+            activity__supplier_id=sup.id,
+            status=getattr(ActivityFile.status, "VALID_OK", "VALID_OK"),
+            uploaded_at__range=(start, end),
         ).count()
         if ActivityFile
         else 0
     )
+
+    files_failed = (
+        ActivityFile.objects.filter(
+            activity__evaluator_id=ev.id,
+            activity__supplier_id=sup.id,
+            status__in=failed_statuses,
+            uploaded_at__range=(start, end),
+        ).count()
+        if ActivityFile and failed_statuses
+        else 0
+    )
+
+    # Total documents uploaded by this supplier in range (optional card)
     docs_count = (
         Document.objects.filter(
-            evaluator=ev, supplier=sup, uploaded_at__range=(start, end)
+            evaluator_id=ev.id,
+            supplier_id=sup.id,
+            uploaded_at__range=(start, end),
         ).count()
         if Document
+        else 0
+    )
+
+    # For completeness, also compute total files regardless of range (useful for secondary info)
+    files_count = (
+        ActivityFile.objects.filter(
+            activity__evaluator_id=ev.id, activity__supplier_id=sup.id
+        ).count()
+        if ActivityFile
         else 0
     )
 
@@ -573,9 +625,11 @@ def sus_dashboard(request):
         evaluator=ev,
         supplier=sup,
         act_count=act_count,
-        files_count=files_count,
         docs_count=docs_count,
         chart_labels=labels,
         chart_acts=chart_acts,
+        files_ok=files_valid_ok,
+        files_failed=files_failed,
+        files_count=files_count,
     )
     return render(request, "dash/sus.html", ctx)

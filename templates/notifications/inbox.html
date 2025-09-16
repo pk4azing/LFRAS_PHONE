@@ -26,10 +26,7 @@
 
             <div class="d-flex gap-2">
               {% if n.link_url %}
-                <form method="post" action="{% url 'notifications:read' n.pk %}">
-                  {% csrf_token %}
-                  <button class="btn btn-sm btn-outline-secondary">Open</button>
-                </form>
+                <a class="btn btn-sm btn-outline-secondary" href="{% url 'notifications:read_go' n.pk %}">Open</a>
               {% endif %}
               {% if not n.read_at %}
                 <form method="post" action="{% url 'notifications:read' n.pk %}">

@@ -10,6 +10,8 @@ from django.utils import timezone
 from django.views.decorators.http import require_POST
 from django.http import FileResponse, HttpResponseForbidden
 from django.shortcuts import get_object_or_404
+import io, zipfile
+from django.core.files.base import ContentFile
 
 from accounts.models import Roles, User
 from .forms import ActivityFileUploadForm, ActivityStartForm
@@ -145,7 +147,17 @@ def activity_detail(request, pk: int):
     if not _can_view(request.user, a):
         return HttpResponseForbidden("Not allowed")
 
-    files = a.files.select_related("uploaded_by").order_by("uploaded_at")
+    files = a.files.select_related("uploaded_by").order_by("-uploaded_at")
+
+    # Counters for files
+    failed_statuses = [FileStatus.VALID_FAILED]
+    if hasattr(FileStatus, "UPLOAD_FAILED"):
+        failed_statuses.append(FileStatus.UPLOAD_FAILED)
+
+    total_files = a.files.count()
+    valid_count = a.files.filter(status=FileStatus.VALID_OK).count()
+    failed_count = a.files.filter(status__in=failed_statuses).count()
+    reupload_count = a.files.exclude(reupload_of=None).count()
 
     # Supplier validation rule coverage (summary)
     coverage = _rule_coverage(a)
@@ -157,14 +169,29 @@ def activity_detail(request, pk: int):
     )
     can_end = (
         a.status == ActivityStatus.IN_PROGRESS
-        and not a.files.filter(status=FileStatus.VALID_FAILED).exists()
+        and not a.files.filter(status__in=failed_statuses).exists()
         and (not any_active_rules or not required_missing)
     )
 
     return render(
         request,
         "activities/detail.html",
-        {"a": a, "files": files, "coverage": coverage, "can_end": can_end},
+        {
+            "a": a,
+            "files": files,
+            "coverage": coverage,
+            "can_end": can_end,
+            "total_files": total_files,
+            "valid_count": valid_count,
+            "failed_count": failed_count,
+            "reupload_count": reupload_count,
+            "counters": {
+                "total": total_files,
+                "valid": valid_count,
+                "failed": failed_count,
+                "reuploads": reupload_count,
+            },
+        },
     )
 
 
@@ -177,66 +204,79 @@ def activity_detail(request, pk: int):
 def upload_file(request, pk: int):
     a = get_object_or_404(visible_activities_qs(request.user), pk=pk)
     if not _can_upload(request.user, a):
-        return HttpResponseForbidden(
-            "Only Supplier users can upload files to this activity."
-        )
-
+        return HttpResponseForbidden("Only Supplier users can upload files to this activity.")
     if a.status != ActivityStatus.IN_PROGRESS:
         messages.error(request, "Activity is not in progress.")
         return redirect("activities:detail", pk=a.id)
 
-    form = ActivityFileUploadForm(request.POST, request.FILES)
-    if not form.is_valid():
-        messages.error(request, "Invalid file.")
+    # Accept both legacy single-file field name "file" and new multi-file field name "files"
+    files_list = request.FILES.getlist("files")
+    if not files_list:
+        single = request.FILES.get("file")
+        if single:
+            files_list = [single]
+
+    if not files_list:
+        messages.error(request, "No files received.")
         return redirect("activities:detail", pk=a.id)
 
-    f = form.cleaned_data["file"]
-    original_name = f.name
+    total = 0
+    ok_count = 0
+    failures = []
 
-    # Versioning: next logical version for this file name
-    last = (
-        a.files.filter(original_name=original_name)
-        .order_by("-version", "-uploaded_at")
-        .first()
-    )
-    next_version = (last.version + 1) if last else 1
+    for f in files_list:
+        name = getattr(f, "name", None) or "upload.bin"
+        # If a zip, expand and process entries
+        if name.lower().endswith(".zip"):
+            try:
+                zbuf = io.BytesIO(f.read())
+                with zipfile.ZipFile(zbuf) as z:
+                    for info in z.infolist():
+                        if info.is_dir():
+                            continue
+                        inner_bytes = z.read(info.filename)
+                        inner_name = info.filename.split("/")[-1]
+                        cf = ContentFile(inner_bytes, name=inner_name)
+                        af, ok, reason = _handle_single_file_upload(a, request.user, cf, inner_name)
+                        total += 1
+                        if ok:
+                            ok_count += 1
+                            log_event(
+                                request=request,
+                                actor=request.user,
+                                verb="uploaded",
+                                action="activity.file.upload",
+                                target=af,
+                                evaluator_id=a.evaluator_id,
+                                supplier_id=a.supplier_id,
+                                metadata={"original_name": inner_name, "version": af.version, "ok": True, "zip_entry": True},
+                            )
+                        else:
+                            failures.append(f"{inner_name}: {reason}")
+            except zipfile.BadZipFile:
+                failures.append(f"{name}: invalid zip archive")
+        else:
+            af, ok, reason = _handle_single_file_upload(a, request.user, f, name)
+            total += 1
+            if ok:
+                ok_count += 1
+                log_event(
+                    request=request,
+                    actor=request.user,
+                    verb="uploaded",
+                    action="activity.file.upload",
+                    target=af,
+                    evaluator_id=a.evaluator_id,
+                    supplier_id=a.supplier_id,
+                    metadata={"original_name": name, "version": af.version, "ok": True},
+                )
+            else:
+                failures.append(f"{name}: {reason}")
 
-    af = ActivityFile.objects.create(
-        activity=a,
-        uploaded_by=request.user,
-        original_name=original_name,
-        file=f,  # storage backend handles path (your upload_to=activity_file_upload_path)
-        status=FileStatus.UPLOADING,
-        version=next_version,
-        reupload_of=last if last else None,
-    )
-    # Move to validating
-    af.status = FileStatus.VALIDATING
-    af.save(update_fields=["status"])
-
-    ok, reason = _validate_activity_file(af)
-    af.status = FileStatus.VALID_OK if ok else FileStatus.VALID_FAILED
-    af.failure_reason = "" if ok else (reason or "Validation failed")
-    af.validated_at = timezone.now()
-    af.save(update_fields=["status", "failure_reason", "validated_at"])
-
-    log_event(
-        request=request,
-        actor=request.user,
-        verb="uploaded",
-        action="activity.file.upload",
-        target=af,
-        evaluator_id=a.evaluator_id,
-        supplier_id=a.supplier_id,
-        metadata={"original_name": original_name, "version": af.version, "ok": ok},
-    )
-
-    if ok:
-        messages.success(request, f"Uploaded {original_name} (v{af.version}) ✓")
-    else:
-        messages.error(
-            request, f"{original_name} failed validation: {af.failure_reason}"
-        )
+    if ok_count:
+        messages.success(request, f"Uploaded {ok_count} file(s) successfully.")
+    if failures:
+        messages.error(request, "Some files failed: " + "; ".join(failures[:5]) + (" …" if len(failures) > 5 else ""))
 
     return redirect("activities:detail", pk=a.id)
 
@@ -265,25 +305,9 @@ def reupload_file(request, file_id: int):
 
     f = form.cleaned_data["file"]
     original_name = prior.original_name
-    next_version = prior.version + 1
+    # next_version = prior.version + 1  # Now handled by helper
 
-    af = ActivityFile.objects.create(
-        activity=a,
-        uploaded_by=request.user,
-        original_name=original_name,
-        file=f,
-        status=FileStatus.UPLOADING,
-        version=next_version,
-        reupload_of=prior,
-    )
-    af.status = FileStatus.VALIDATING
-    af.save(update_fields=["status"])
-
-    ok, reason = _validate_activity_file(af)
-    af.status = FileStatus.VALID_OK if ok else FileStatus.VALID_FAILED
-    af.failure_reason = "" if ok else (reason or "Validation failed")
-    af.validated_at = timezone.now()
-    af.save(update_fields=["status", "failure_reason", "validated_at"])
+    af, ok, reason = _handle_single_file_upload(a, request.user, f, original_name, base_version_from=prior)
 
     log_event(
         request=request,
@@ -342,7 +366,6 @@ def end_activity(request, pk: int):
         messages.info(request, "Activity already ended.")
         return redirect("activities:detail", pk=a.id)
 
-    # failed files?
     if a.files.filter(status=FileStatus.VALID_FAILED).exists():
         messages.error(
             request, "Resolve failed files or re‑upload before ending the activity."
@@ -437,7 +460,7 @@ def _validate_activity_file(af: ActivityFile) -> tuple[bool, str]:
     except Exception:
         return True, ""  # rules not available → accept
 
-    rules = Rule.objects.filter(supplier=af.activity.supplier, active=True)
+    rules = Rule.objects.filter(supplier=a.supplier, is_active=True)
     if not rules.exists():
         return True, ""
 
@@ -491,7 +514,7 @@ def _rule_coverage(a: Activity) -> dict:
     except Exception:
         return {"any_active_rules": False, "required_missing": [], "matched_counts": {}}
 
-    rules = list(Rule.objects.filter(supplier=a.supplier, active=True))
+    rules = list(Rule.objects.filter(supplier=a.supplier, is_active=True))
     if not rules:
         return {"any_active_rules": False, "required_missing": [], "matched_counts": {}}
 
@@ -544,26 +567,115 @@ def activity_status_json(request, pk: int):
         data.append(
             {
                 "id": f.id,
+                "name": f.original_name,
                 "status": f.status,
+                "is_valid": f.status == FileStatus.VALID_OK,
+                "is_failed": f.status in (getattr(FileStatus, "UPLOAD_FAILED", FileStatus.VALID_FAILED), FileStatus.VALID_FAILED),
                 "failure_reason": f.failure_reason or "",
+                "version": f.version,
+                "uploaded_at": f.uploaded_at.isoformat() if f.uploaded_at else None,
+                "validated_at": f.validated_at.isoformat() if f.validated_at else None,
             }
         )
     return JsonResponse({"ok": True, "files": data})
 
+# ---------- helpers: validation & coverage ----------
 
-@login_required
-@require_POST
-def delete_file(request, pk: int, file_id: int):
-    a = get_object_or_404(visible_activities_qs(request.user), pk=pk)
-    f = get_object_or_404(a.files, pk=file_id)
-    if not _can_manage_files(request.user, a):
-        return HttpResponseForbidden("Not allowed")
-    # allow delete only if not VALID_OK (optional rule; change as needed)
-    if f.status == FileStatus.VALID_OK:
-        messages.error(
-            request, "Cannot delete a validated file. Re-upload to replace instead."
+
+
+def _handle_single_file_upload(
+    a: Activity,
+    user: User,
+    fobj,
+    original_name: str,
+    base_version_from: ActivityFile | None = None,
+) -> tuple[ActivityFile, bool, str]:
+    """
+    Create an ActivityFile record, transition UPLOADING -> VALIDATING, run validation,
+    and persist result. Any exception during save/validation marks the record as
+    UPLOAD_FAILED (or VALID_FAILED if UPLOAD_FAILED does not exist) with a reason.
+    Returns (ActivityFile, ok, reason).
+    """
+    # compute next version / reupload linkage
+    if base_version_from is not None:
+        next_version = base_version_from.version + 1
+        reupload_of = base_version_from
+    else:
+        last = (
+            a.files.filter(original_name=original_name)
+            .order_by("-version", "-uploaded_at")
+            .first()
         )
-        return redirect("activities:detail", pk=a.id)
+        next_version = (last.version + 1) if last else 1
+        reupload_of = last if last else None
+
+    af: ActivityFile | None = None
+    failed_status = getattr(FileStatus, "UPLOAD_FAILED", FileStatus.VALID_FAILED)
+
+    try:
+        # Create + persist file. If storage backend errors here, we'll catch below.
+        af = ActivityFile.objects.create(
+            activity=a,
+            uploaded_by=user,
+            original_name=original_name,
+            file=fobj,
+            status=FileStatus.UPLOADING,
+            version=next_version,
+            reupload_of=reupload_of,
+        )
+
+        # Move to validating
+        af.status = FileStatus.VALIDATING
+        af.save(update_fields=["status"])
+
+        ok, reason = _validate_activity_file(af)
+
+        af.status = FileStatus.VALID_OK if ok else FileStatus.VALID_FAILED
+        af.failure_reason = "" if ok else (reason or "Validation failed")
+        af.validated_at = timezone.now()
+        af.save(update_fields=["status", "failure_reason", "validated_at"])
+        return af, ok, reason or ""
+
+    except Exception as e:
+        # Either object creation failed (af is None) or later steps blew up
+        reason = f"Upload/validation error: {e}"
+        if af is None:
+            # Create a minimal failed record so the UI has a row to show
+            af = ActivityFile.objects.create(
+                activity=a,
+                uploaded_by=user,
+                original_name=original_name,
+                status=failed_status,
+                version=next_version,
+                reupload_of=reupload_of,
+                failure_reason=reason,
+            )
+        else:
+            af.status = failed_status
+            af.failure_reason = reason
+            af.validated_at = timezone.now()
+            af.save(update_fields=["status", "failure_reason", "validated_at"])
+        return af, False, reason
+
+
+
+@require_POST
+@login_required
+def delete_file(request, pk: int, file_id: int):
+    # Ensure the activity in the URL exists and is visible to the user
+    a = get_object_or_404(visible_activities_qs(request.user), pk=pk)
+    # Bind the file to that activity; mismatches 404 instead of 403
+    f = get_object_or_404(ActivityFile, pk=file_id, activity=a)
+    if not _can_upload(request.user, a) or a.status != ActivityStatus.IN_PROGRESS:
+        return HttpResponseForbidden("Not allowed")
+
+    # Try to remove blob from storage first; ignore errors so DB row is still removed
+    try:
+        if f.file and hasattr(f.file, "storage") and f.file.name:
+            f.file.storage.delete(f.file.name)
+    except Exception:
+        pass
+
     f.delete()
-    messages.success(request, "File removed.")
+    messages.success(request, "File deleted.")
     return redirect("activities:detail", pk=a.id)

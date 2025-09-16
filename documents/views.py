@@ -64,16 +64,16 @@ def _doc_scope(qs, user):
 @login_required
 def list_documents(request):
     qs = Document.objects.select_related("evaluator", "supplier").order_by(
-        "expiry_date", "title"
+        "expires_at", "title"
     )
     qs = _doc_scope(qs, request.user)
 
     expiring = (request.GET.get("expiring") or "").lower()
     today = timezone.localdate()
     if expiring == "week":
-        qs = qs.filter(expiry_date__range=[today, today + timedelta(days=7)])
+        qs = qs.filter(expires_at__date__range=[today, today + timedelta(days=7)])
     elif expiring == "month":
-        qs = qs.filter(expiry_date__range=[today, today + timedelta(days=30)])
+        qs = qs.filter(expires_at__date__range=[today, today + timedelta(days=30)])
 
     q = request.GET.get("q") or ""
     if q:

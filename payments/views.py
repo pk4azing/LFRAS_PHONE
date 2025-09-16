@@ -17,6 +17,8 @@ def list_payments(request):
         return HttpResponseForbidden("Not allowed.")
     qs = PaymentRecord.objects.select_related("evaluator").all()
 
+    tab = request.GET.get("tab")
+
     # Filters: evaluator, plan, status, date range
     eval_id = request.GET.get("evaluator")
     plan = request.GET.get("plan")
@@ -60,6 +62,38 @@ def list_payments(request):
     if sort in allowed:
         qs = qs.order_by(sort)
 
+    # Transactions tab support
+    tx_qs = PaymentTransaction.objects.select_related("record", "record__evaluator").all() if tab == "tx" else PaymentTransaction.objects.none()
+
+    if tab == "tx":
+        # Reuse the same filter params: evaluator, status, date range, q, sort
+        if eval_id:
+            tx_qs = tx_qs.filter(record__evaluator_id=eval_id)
+        if status:
+            tx_qs = tx_qs.filter(status=status)
+        try:
+            if start:
+                start_dt = datetime.strptime(start, "%Y-%m-%d").date()
+                tx_qs = tx_qs.filter(created_at__date__gte=start_dt)
+            if end:
+                end_dt = datetime.strptime(end, "%Y-%m-%d").date()
+                tx_qs = tx_qs.filter(created_at__date__lte=end_dt)
+        except Exception:
+            pass
+        if q:
+            tx_qs = tx_qs.filter(
+                Q(record__evaluator__name__icontains=q)
+                | Q(reference__icontains=q)
+                | Q(method__icontains=q)
+                | Q(notes__icontains=q)
+            )
+        tx_sort = request.GET.get("sort") or "-created_at"
+        tx_allowed = {"created_at", "-created_at", "amount", "-amount"}
+        if tx_sort in tx_allowed:
+            tx_qs = tx_qs.order_by(tx_sort)
+        else:
+            tx_qs = tx_qs.order_by("-created_at")
+
     # For filters UI
     from tenants.models import Evaluator
 
@@ -73,6 +107,8 @@ def list_payments(request):
             "evals": evals,
             "today": timezone.localdate(),
             "params": request.GET,
+            "transactions": tx_qs,
+            "tab": tab,
         },
     )
 
@@ -150,5 +186,15 @@ def record_detail(request, pk: int):
     if not can_view_payments(request.user):
         return HttpResponseForbidden("Not allowed.")
     rec = get_object_or_404(PaymentRecord.objects.select_related("evaluator"), pk=pk)
-    trxs = rec.transactions.all()
-    return render(request, "payments/detail.html", {"rec": rec, "trxs": trxs})
+    transactions = rec.transactions.order_by("-created_at")
+    return render(
+        request,
+        "payments/detail.html",
+        {
+            "rec": rec,
+            "payment": rec,              # alias for template convenience
+            "trxs": transactions,        # legacy name
+            "transactions": transactions,
+            "params": request.GET,
+        },
+    )

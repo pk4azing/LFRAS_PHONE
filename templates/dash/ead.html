@@ -2,119 +2,136 @@
 {% block title %}Evaluator — Project Dashboard{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-start mb-3">
-  <div>
-    <h4 class="mb-1">Evaluator — Project Dashboard</h4>
-    <div class="text-muted small">
-      Range: {{ start|date:"Y-m-d" }} → {{ end|date:"Y-m-d" }} ({{ range_label }})
-    </div>
-  </div>
-  <div class="d-flex gap-2">
-    <a class="btn btn-primary" href="{% url 'tenants:supplier_create' %}">Create Supplier</a>
-    <a class="btn btn-outline-primary" href="{% url 'tenants:suppliers' %}">All Suppliers</a>
-    <a class="btn btn-outline-secondary" href="{% url 'tickets:create' %}">New Ticket</a>
-  </div>
-</div>
+    <div class="page-body">
+        <div class="d-flex justify-content-between align-items-start mb-3">
+            <div>
+                <h4 class="mb-1">Evaluator — Project Dashboard</h4>
+                <div class="text-muted small">
+                    Range: {{ start|date:"Y-m-d" }} → {{ end|date:"Y-m-d" }} ({{ range_label }})
+                </div>
+            </div>
+            <div class="d-flex gap-2">
+                <a class="btn btn-primary" href="{% url 'tenants:new_supplier' %}">Create Supplier</a>
+                <a class="btn btn-outline-primary" href="{% url 'tenants:suppliers_list' %}">All Suppliers</a>
+                <a class="btn btn-outline-secondary" href="{% url 'tickets:new' %}">New Ticket</a>
+            </div>
+        </div>
 
-<!-- Plan snapshot -->
-<div class="card mb-3">
-  <div class="card-body">
-    <div class="row g-3">
-      <div class="col-12 col-md-3">
-        <div class="text-muted small">Current Plan</div>
-        <div class="fs-5">
-          {% if active_plan %}
-            {% if active_plan.plan_name %}{{ active_plan.plan_name }}{% else %}{{ active_plan.plan|title }}{% endif %}
-          {% else %}—{% endif %}
+        <!-- Plan snapshot -->
+        <div class="card mb-3">
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-12 col-md-3">
+                        <div class="text-muted small">Current Plan</div>
+                        <div class="fs-5">
+                            {% if active_plan %}
+                                {% if active_plan.plan_name %}{{ active_plan.plan_name }}{% else %}
+                                    {{ active_plan.plan|title }}{% endif %}
+                            {% else %}—{% endif %}
+                        </div>
+                    </div>
+                    <div class="col-12 col-md-3">
+                        <div class="text-muted small">Plan Expiry</div>
+                        <div class="fs-6">{% if active_plan and active_plan.end_date %}
+                            {{ active_plan.end_date|date:"Y-m-d" }}{% else %}—{% endif %}</div>
+                    </div>
+                    <div class="col-12 col-md-6">
+                        <div class="text-muted small">Usage Limits</div>
+                        <div class="small">
+                            Suppliers: {% if usage_limits.suppliers %}{{ usage_limits.suppliers }}{% else %}∞{% endif %}
+                            &nbsp;•&nbsp; Users:
+                            {% if usage_limits.users %}{{ usage_limits.users }}{% else %}∞{% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
-      </div>
-      <div class="col-12 col-md-3">
-        <div class="text-muted small">Plan Expiry</div>
-        <div class="fs-6">{% if active_plan and active_plan.end_date %}{{ active_plan.end_date|date:"Y-m-d" }}{% else %}—{% endif %}</div>
-      </div>
-      <div class="col-12 col-md-6">
-        <div class="text-muted small">Usage Limits</div>
-        <div class="small">
-          Suppliers: {% if usage_limits.suppliers %}{{ usage_limits.suppliers }}{% else %}∞{% endif %}
-          &nbsp;•&nbsp; Users: {% if usage_limits.users %}{{ usage_limits.users }}{% else %}∞{% endif %}
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
 
-<!-- Quick stats -->
-<div class="row g-3 mb-3">
-  <div class="col-12 col-md-3">
-    <div class="card h-100"><div class="card-body">
-      <div class="text-muted small">Suppliers</div>
-      <div class="fs-3">{{ supplier_count|default:0 }}</div>
-      <a class="small text-decoration-none" href="{% url 'tenants:suppliers' %}">Manage suppliers →</a>
-    </div></div>
-  </div>
-  <div class="col-12 col-md-3">
-    <div class="card h-100"><div class="card-body">
-      <div class="text-muted small">Evaluator Users (EVS)</div>
-      <div class="fs-3">{{ evs_count|default:0 }}</div>
-      <a class="small text-decoration-none" href="{% url 'accounts:users_list' %}">Manage users →</a>
-    </div></div>
-  </div>
-  <div class="col-12 col-md-3">
-    <div class="card h-100"><div class="card-body">
-      <div class="text-muted small">Activities ({{ range_label }})</div>
-      <div class="fs-3">{{ act_count|default:0 }}</div>
-      <a class="small text-decoration-none" href="{% url 'activities:list' %}">View activities →</a>
-    </div></div>
-  </div>
-  <div class="col-12 col-md-3">
-    <div class="card h-100"><div class="card-body">
-      <div class="text-muted small">Expiring Docs (next 7 days)</div>
-      <div class="fs-3">{{ expiring_week|default:0 }}</div>
-      <a class="small text-decoration-none" href="{% url 'documents:list' %}?expiring=week">See details →</a>
-    </div></div>
-  </div>
-</div>
+        <!-- Quick stats -->
+        <div class="row g-3 mb-3">
+            <div class="col-12 col-md-3">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <div class="text-muted small">Suppliers</div>
+                        <div class="fs-3">{{ supplier_count|default:0 }}</div>
+                        <a class="small text-decoration-none" href="{% url 'tenants:suppliers_list' %}">Manage suppliers
+                            →</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-md-3">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <div class="text-muted small">Evaluator Users (EVS)</div>
+                        <div class="fs-3">{{ evs_count|default:0 }}</div>
+                        <a class="small text-decoration-none" href="{% url 'accounts:staff' %}">Manage users →</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-md-3">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <div class="text-muted small">Activities ({{ range_label }})</div>
+                        <div class="fs-3">{{ act_count|default:0 }}</div>
+                        <a class="small text-decoration-none" href="{% url 'activities:list' %}">View activities →</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-md-3">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <div class="text-muted small">Expiring Docs (next 7 days)</div>
+                        <div class="fs-3">{{ expiring_week|default:0 }}</div>
+                        <a class="small text-decoration-none" href="{% url 'documents:list' %}?expiring=week">See
+                            details →</a>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-<!-- 12‑month summary cards (labels/data already provided by your view) -->
-<div class="card">
-  <div class="card-body">
-    <h6 class="mb-2">12‑Month Trend</h6>
-    <div class="row g-3">
-      <div class="col-12 col-md-6">
-        <div class="p-2 border rounded">
-          <div class="text-muted small mb-1">Documents uploaded (monthly)</div>
-          <ul class="list-unstyled mb-0 small">
-          {% for label,val in chart_labels|zip:chart_docs %}
-            <li class="d-flex justify-content-between"><span>{{ label }}</span><span class="fw-semibold">{{ val }}</span></li>
-          {% endfor %}
-          </ul>
+        <!-- 12‑month summary cards (labels/data already provided by your view) -->
+        <div class="card">
+            <div class="card-body">
+                <h6 class="mb-2">12‑Month Trend</h6>
+                <div class="row g-3">
+                    <div class="col-12 col-md-6">
+                        <div class="p-2 border rounded">
+                            <div class="text-muted small mb-1">Documents uploaded (monthly)</div>
+                            <ul class="list-unstyled mb-0 small">
+                                {% for label,val in chart_docs_pairs %}
+                                    <li class="d-flex justify-content-between"><span>{{ label }}</span><span
+                                            class="fw-semibold">{{ val }}</span></li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="col-12 col-md-6">
+                        <div class="p-2 border rounded">
+                            <div class="text-muted small mb-1">Activities started (monthly)</div>
+                            <ul class="list-unstyled mb-0 small">
+                                {% for label,val in chart_acts_pairs %}
+                                    <li class="d-flex justify-content-between"><span>{{ label }}</span><span
+                                            class="fw-semibold">{{ val }}</span></li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
-      </div>
-      <div class="col-12 col-md-6">
-        <div class="p-2 border rounded">
-          <div class="text-muted small mb-1">Activities started (monthly)</div>
-          <ul class="list-unstyled mb-0 small">
-          {% for label,val in chart_labels|zip:chart_acts %}
-            <li class="d-flex justify-content-between"><span>{{ label }}</span><span class="fw-semibold">{{ val }}</span></li>
-          {% endfor %}
-          </ul>
+        <!-- Quick Actions -->
+        <div class="card mt-3">
+            <div class="card-body">
+                <h6 class="mb-2">Quick Actions</h6>
+                <div class="d-flex flex-wrap gap-2">
+                    <a class="btn btn-primary" href="{% url 'tenants:new_supplier' %}">Create Supplier</a>
+                    <a class="btn btn-outline-primary" href="{% url 'activities:list' %}">View Activities</a>
+                    <a class="btn btn-outline-primary" href="{% url 'tickets:new' %}">New Ticket</a>
+                    <a class="btn btn-outline-secondary" href="{% url 'preferences:index' %}">Evaluator Settings</a>
+                </div>
+            </div>
         </div>
-      </div>
     </div>
-  </div>
-</div>
-<!-- Quick Actions -->
-<div class="card mt-3">
-  <div class="card-body">
-    <h6 class="mb-2">Quick Actions</h6>
-    <div class="d-flex flex-wrap gap-2">
-      <a class="btn btn-primary" href="{% url 'tenants:supplier_create' %}">Create Supplier</a>
-      <a class="btn btn-outline-primary" href="{% url 'activities:list' %}">View Activities</a>
-      <a class="btn btn-outline-primary" href="{% url 'tickets:create' %}">New Ticket</a>
-      <a class="btn btn-outline-secondary" href="{% url 'preferences:evaluator' %}">Evaluator Settings</a>
-    </div>
-  </div>
-</div>
 {% endblock %}
 
 {% block extra_js %}{% endblock %}

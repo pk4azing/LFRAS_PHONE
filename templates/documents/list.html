@@ -1,55 +1,67 @@
 {% extends "base.html" %}
 {% block title %}Documents{% endblock %}
 {% block content %}
-<div class="card card-form mb-3">
-  <div class="card-header d-flex justify-content-between align-items-center">
-    <h5 class="mb-0">Documents</h5>
-    <a class="btn btn-sm btn-primary" href="{% url 'documents:upload' %}">Upload</a>
-  </div>
-  <div class="card-body p-0">
+    <div class="page-body">
+        <div class="container-fluid">
+            {% include "partials/_alerts.html" %}
+            <div class="card card-form mb-3">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Documents</h5>
+                    <a class="btn btn-sm btn-primary" href="{% url 'documents:upload' %}">Upload</a>
+                </div>
+                <div class="card-body p-0">
 
-<form method="post" action="{% url 'documents:download_zip' %}">
-  {% csrf_token %}
-  <div class="table-responsive">
-    <table class="table table-hover align-middle">
-      <thead>
-        <tr>
-          <th style="width:32px;"><input type="checkbox" onclick="document.querySelectorAll('.pick').forEach(cb=>cb.checked=this.checked)"></th>
-          <th>Title</th>
-          <th>Category</th>
-          <th>Evaluator</th>
-          <th>Supplier</th>
-          <th>Uploaded</th>
-          <th>Expires</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for d in docs %}
-        <tr class="{% if d.is_expired %}table-danger{% elif d.days_to_expiry != None and d.days_to_expiry <= d.remind_days_before %}table-warning{% endif %}">
-          <td><input type="checkbox" class="pick" name="ids" value="{{ d.id }}"></td>
-          <td>{{ d.title }}</td>
-          <td class="text-muted small">{{ d.get_category_display }}</td>
-          <td>{{ d.evaluator.name }}</td>
-          <td>{% if d.supplier %}{{ d.supplier.name }}{% else %}-{% endif %}</td>
-          <td class="small text-muted">{{ d.uploaded_at|date:"Y-m-d H:i" }}</td>
-          <td class="small">
-            {% if d.expires_at %}{{ d.expires_at|date:"Y-m-d H:i" }}{% else %}-{% endif %}
-          </td>
-          <td class="text-end">
-            <a class="btn btn-sm btn-outline-secondary" href="{% url 'documents:download' d.id %}">Download</a>
-          </td>
-        </tr>
-        {% empty %}
-        <tr><td colspan="8" class="text-center text-muted py-3">No documents yet.</td></tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
+                    <form method="post" action="{% url 'documents:download_zip' %}">
+                        {% csrf_token %}
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle">
+                                <thead>
+                                <tr>
+                                    <th style="width:32px;"><input type="checkbox"
+                                                                   onclick="document.querySelectorAll('.pick').forEach(cb=>cb.checked=this.checked)">
+                                    </th>
+                                    <th>Title</th>
+                                    <th>Category</th>
+                                    <th>Evaluator</th>
+                                    <th>Supplier</th>
+                                    <th>Uploaded</th>
+                                    <th>Expires</th>
+                                    <th></th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                {% for d in docs %}
+                                    <tr class="{% if d.is_expired %}table-danger{% elif d.days_to_expiry != None and d.days_to_expiry <= d.remind_days_before %}table-warning{% endif %}">
+                                        <td><input type="checkbox" class="pick" name="ids" value="{{ d.id }}"></td>
+                                        <td>{{ d.title }}</td>
+                                        <td class="text-muted small">{{ d.get_category_display }}</td>
+                                        <td>{{ d.evaluator.name }}</td>
+                                        <td>{% if d.supplier %}{{ d.supplier.name }}{% else %}-{% endif %}</td>
+                                        <td class="small text-muted">{{ d.uploaded_at|date:"Y-m-d H:i" }}</td>
+                                        <td class="small">
+                                            {% if d.expires_at %}{{ d.expires_at|date:"Y-m-d H:i" }}{% else %}
+                                                -{% endif %}
+                                        </td>
+                                        <td class="text-end">
+                                            <a class="btn btn-sm btn-outline-secondary"
+                                               href="{% url 'documents:download' d.id %}">Download</a>
+                                        </td>
+                                    </tr>
+                                {% empty %}
+                                    <tr>
+                                        <td colspan="8" class="text-center text-muted py-3">No documents yet.</td>
+                                    </tr>
+                                {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
 
-  <div class="mt-2">
-    <button class="btn btn-sm btn-outline-primary" type="submit">Download ZIP</button>
-  </div>
-</form>
-</div></div>
+                        <div class="mt-2">
+                            <button class="btn btn-sm btn-outline-primary" type="submit">Download ZIP</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
 {% endblock %}

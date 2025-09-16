@@ -8,5 +8,5 @@ urlpatterns = [
     path("read-all/", read_all, name="read_all"),
     # NEW for the navbar slider
     path("panel/", panel, name="panel"),
-    path("<int:pk>/read-go/", read_and_redirect, name="read_go"),
+    path("<int:pk>/read-go/", read_go, name="read_go"),
 ]

@@ -5,6 +5,7 @@ from .forms import (
     CreateEvaluatorForm,
     CreateSupplierForm,
     CreateEvaluatorUserForm,
+    SupplierForm,
 )
 from .models import Evaluator
 from .services import (
@@ -30,6 +31,16 @@ from validation.models import (
     SupplierValidationRule,
 )
 
+
+def _can_edit_supplier(user, supplier: Supplier) -> bool:
+    # Allow Lucid admins (LAD/LUS) or the Evaluator staff owning this supplier.
+    if user.role in ("LAD", "LUS"):
+        return False
+    # Example: if your Supplier has a foreign key to evaluator and your
+    # EVS/EAD should edit only their suppliers, scope here:
+    if user.role in ("EVS", "EAD") and supplier.evaluator_id == getattr(user, "evaluator_id", None):
+        return True
+    return False
 
 def _ensure_ead_scope(user, supplier: Supplier):
     # LAD/LUS always allowed; EAD/EVS limited to own evaluator; SUS never allowed
@@ -140,7 +151,7 @@ def new_supplier(request):
         messages.success(
             request, f"Supplier '{supplier.name}' created. SUS: {sus.email}"
         )
-        return redirect("router:ead_dashboard")
+        return redirect("router:ead")
     return render(request, "tenants/new_supplier.html", {"form": form})
 
 
@@ -296,3 +307,58 @@ def evaluators_list(request):
         "total": qs.count(),
     }
     return render(request, "tenants/evaluators_list.html", ctx)
+
+
+@login_required
+def suppliers_list(request):
+    """
+    List Suppliers with search/pagination.
+    LAD/LUS: see all suppliers.
+    EAD: only suppliers under their evaluator.
+    """
+    qs = Supplier.objects.select_related("evaluator").all().order_by("-id")
+
+    # Scope for EAD
+    if getattr(request.user, "role", None) == Roles.EAD:
+        qs = qs.filter(evaluator_id=request.user.evaluator_id)
+
+    # Simple search
+    q = request.GET.get("q", "").strip()
+    if q:
+        qs = qs.filter(
+            Q(name__icontains=q) | Q(evaluator__name__icontains=q)
+        )
+
+    paginator = Paginator(qs, 20)
+    page_number = request.GET.get("page")
+    page_obj = paginator.get_page(page_number)
+
+    ctx = {
+        "page_obj": page_obj,
+        "q": q,
+        "total": qs.count(),
+    }
+    return render(request, "tenants/suppliers_list.html", ctx)
+
+
+@login_required
+def supplier_edit(request, pk: int):
+    supplier = get_object_or_404(Supplier, pk=pk)
+    if not _can_edit_supplier(request.user, supplier):
+        messages.error(request, "You don’t have permission to edit this supplier.")
+        return redirect("tenants:suppliers_list")
+
+    if request.method == "POST":
+        form = SupplierForm(request.POST, instance=supplier)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Supplier details updated.")
+            # Go to a detail page if you have it; otherwise back to list
+            return redirect("tenants:suppliers_detail", pk=supplier.pk) if \
+                "tenants:suppliers_detail" in request.resolver_match.namespace or True else \
+                redirect("tenants:suppliers_list")
+    else:
+        form = SupplierForm(instance=supplier)
+
+    ctx = {"form": form, "supplier": supplier}
+    return render(request, "tenants/supplier_edit.html", ctx)

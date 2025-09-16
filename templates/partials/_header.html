@@ -1,16 +1,29 @@
 {% load form_extras %}
+{% load static %}
 <header class="lc-topbar border-bottom bg-white">
   <div class="container-fluid d-flex align-items-center justify-content-between" style="height:56px;">
 
-    <!-- Left: Sidebar toggle (mobile) + Brand -->
+    <!-- Left: Logo + Page title/breadcrumb -->
     <div class="d-flex align-items-center gap-2">
-      <button class="btn btn-sm btn-outline-secondary d-md-none" id="lcSidebarToggle" aria-label="Toggle menu">☰</button>
-{#      <a href="{% url 'router:role_redirect' %}" class="navbar-brand m-0 p-0 fw-bold text-decoration-none text-dark">#}
-{#        Lucid#}
-{#      </a>#}
-      <span class="vr d-none d-md-inline mx-2"></span>
-      <div class="fw-semibold d-none d-sm-block small text-muted">
-        {% block topbar_title %}{% endblock %}
+      <div class="header-logo-wrapper col-auto">
+        <div class="logo-wrapper">
+          <a href="{% url 'router:role_redirect' %}">
+            <img class="img-fluid for-light" src="{% static 'mofi/images/logo/logo.png' %}" alt=""/>
+            <img class="img-fluid for-dark" src="{% static 'mofi/images/logo/logo_light.png' %}" alt=""/>
+          </a>
+        </div>
+      </div>
+      <div class="col-4 col-xl-4 page-title">
+        <h4 class="f-w-700">{% block topbar_title %}Project Dashboard{% endblock %}</h4>
+        <nav>
+          <ol class="breadcrumb justify-content-sm-start align-items-center mb-0">
+            <li class="breadcrumb-item">
+              <a href="{% url 'router:role_redirect' %}"><i data-feather="home"></i></a>
+            </li>
+            <li class="breadcrumb-item f-w-400">Dashboard</li>
+            <li class="breadcrumb-item f-w-400 active">Project</li>
+          </ol>
+        </nav>
       </div>
     </div>
 
@@ -24,9 +37,10 @@
           <path d="M8 16a2 2 0 0 0 1.985-1.75H6.015A2 2 0 0 0 8 16Zm.104-14a3.001 3.001 0 0 0-2.9 2.196A4.5 4.5 0 0 0 1.5 8v2.086l-.854 1.707A.5.5 0 0 0 1.09 12h13.82a.5.5 0 0 0 .444-.707L14.5 10.086V8a4.5 4.5 0 0 0-3.704-4.42A3.001 3.001 0 0 0 8.104 2Z"/>
         </svg>
         <span>Notifications</span>
-        {% if unread_notifications %}
-          <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
-            {{ unread_notifications }}
+        {% firstof unread_notifications unread_count notifications_unread inbox_unread as notif_count %}
+        {% if notif_count %}
+          <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" aria-label="{{ notif_count }} unread notifications" title="{{ notif_count }} unread">
+            {{ notif_count }}
           </span>
         {% endif %}
       </a>
@@ -34,7 +48,11 @@
       <!-- Profile dropdown -->
       <div class="dropdown">
         <button class="btn btn-sm btn-outline-secondary dropdown-toggle d-flex align-items-center" data-bs-toggle="dropdown" aria-expanded="false">
-          <span class="avatar-circle me-2">{{ request.user.email|first|upper }}</span>
+          {% if request.user.profile.picture %}
+            <img src="{{ request.user.profile.picture.url }}" alt="Profile Picture" class="rounded-circle me-2" width="22" height="22">
+          {% else %}
+            <span class="avatar-circle me-2">{{ request.user.email|first|upper }}</span>
+          {% endif %}
           <span class="d-none d-sm-inline">
             {% if request.user.first_name %}
               {{ request.user.first_name }}

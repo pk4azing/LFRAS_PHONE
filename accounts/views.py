@@ -247,6 +247,10 @@ def users_list(request):
     elif status == "inactive":
         qs = qs.filter(is_active=False)
 
+    role = request.GET.get("role") or ""
+    if role:
+        qs = qs.filter(role=role)
+
     paginator = Paginator(qs, 20)
     page_obj = paginator.get_page(request.GET.get("page"))
 
@@ -254,6 +258,7 @@ def users_list(request):
         "page_obj": page_obj,
         "q": q,
         "status": status,
+        "role": role,
         "total": qs.count(),
     }
     return render(request, "account/users_list.html", ctx)
@@ -261,9 +266,18 @@ def users_list(request):
 
 @login_required
 @user_passes_test(is_LAD)  # only Lucid Admins can create
-def create_lucid_user(request):
+def create_lucid_user(request, pk: int | None = None):
+    # If a pk is passed (route used for edit), delegate to the edit view
+    if pk is not None:
+        return user_edit(request, pk)
+
+    instance = None  # creation flow only
     if request.method == "POST":
-        form = LucidUserForm(request.POST)
+        form = LucidUserForm(
+            request.POST or None,
+            instance=instance,
+            request_user=request.user,
+        )
         if form.is_valid():
             user = form.save(commit=False)
             # generate password
@@ -273,7 +287,11 @@ def create_lucid_user(request):
             # email the credentials
             send_mail(
                 "Your LucidCompliances account",
-                f"Hello {user.first_name},\n\nYour account has been created.\nUsername: {user.email}\nPassword: {raw_pw}\n",
+                (
+                    f"Hello {user.first_name},\n\n"
+                    f"Your account has been created.\n"
+                    f"Username: {user.email}\nPassword: {raw_pw}\n"
+                ),
                 settings.DEFAULT_FROM_EMAIL,
                 [user.email],
             )
@@ -281,8 +299,11 @@ def create_lucid_user(request):
                 request, f"Lucid user {user.email} created and password sent."
             )
             return redirect("accounts:staff")
+        else:
+            messages.error(request, "Please correct the errors below.")
     else:
-        form = LucidUserForm()
+        form = LucidUserForm(request_user=request.user)
+
     return render(request, "account/create_lucid_user.html", {"form": form})
 
 
@@ -291,7 +312,7 @@ def create_lucid_user(request):
 def user_edit(request, pk: int):
     user = get_object_or_404(User, pk=pk, role__in=["LAD", "LUS"])
     if request.method == "POST":
-        form = LucidUserForm(request.POST, instance=user)
+        form = LucidUserForm(request.POST, instance=user, request_user=request.user)
         if form.is_valid():
             form.save()
             messages.success(request, "User updated successfully.")
@@ -299,7 +320,7 @@ def user_edit(request, pk: int):
         else:
             messages.error(request, "Please correct the errors below.")
     else:
-        form = LucidUserForm(instance=user)
+        form = LucidUserForm(instance=user, request_user=request.user)
     # Reuse the create template for editing; it already has a form layout
     return render(request, "account/create_lucid_user.html", {"form": form, "is_edit": True, "editing_user": user})
 

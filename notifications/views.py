@@ -1,3 +1,4 @@
+ # RBAC helper: centralize visibility rules here (currently recipient-scoped)
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
@@ -8,6 +9,7 @@ from django.utils.http import url_has_allowed_host_and_scheme
 from django.conf import settings
 from django.views.decorators.http import require_POST
 from django.template.loader import render_to_string
+from urllib.parse import urlparse
 
 from .models import Notification
 from .services import mark_read, mark_all_read
@@ -21,9 +23,12 @@ def _mark_read(obj: Notification):
     return True
 
 
+def _rbac_queryset(user):
+    return Notification.objects.filter(recipient=user)
+
 @login_required
 def inbox(request):
-    notes = Notification.objects.order_by("-created_at")
+    notes = _rbac_queryset(request.user).order_by("-created_at")
     unread_count = notes.filter(read_at__isnull=True).count()
     return render(
         request,
@@ -58,7 +63,7 @@ def read(request, pk: int):
 @login_required
 @require_POST
 def read_all(request):
-    qs = Notification.objects.filter(recipient=request.user, read_at__isnull=True)
+    qs = _rbac_queryset(request.user).filter(read_at__isnull=True)
     updated = qs.update(read_at=timezone.now())
     if request.headers.get("x-requested-with") == "XMLHttpRequest":
         return JsonResponse({"ok": True, "updated": updated})
@@ -72,9 +77,7 @@ def panel(request):
     html = render_to_string(
         "notifications/panel.html",
         {
-            "notifications": request.user.notifications.all().order_by("-created_at")[
-                :10
-            ],
+            "notifications": _rbac_queryset(request.user).order_by("-created_at")[:10],
         },
         request=request,
     )
@@ -86,4 +89,33 @@ def panel(request):
 def read_and_redirect(request, pk: int):
     n = get_object_or_404(Notification, pk=pk, recipient=request.user)
     mark_read(n)
-    return redirect(n.link_url or "notifications:inbox")
+
+    next_url = n.link_url or ""
+    if not url_has_allowed_host_and_scheme(
+        next_url, allowed_hosts={request.get_host()}, require_https=request.is_secure()
+    ):
+        next_url = None
+
+    return redirect(next_url or getattr(settings, "NOTIFICATIONS_INBOX_URL", "/"))
+
+
+@login_required
+def read_go(request, pk):
+    n = get_object_or_404(Notification, pk=pk, recipient=request.user)
+    if not n.read_at:
+        n.read_at = timezone.now()
+        n.save(update_fields=["read_at"])
+
+    target = n.link_url or "/"
+
+    # Only allow redirects to the current host; else fall back to inbox/home
+    if not url_has_allowed_host_and_scheme(
+        target, allowed_hosts={request.get_host()}, require_https=request.is_secure()
+    ):
+        return redirect(getattr(settings, "NOTIFICATIONS_INBOX_URL", "/"))
+
+    parsed = urlparse(target)
+    path = parsed.path or "/"
+    if parsed.query:
+        path = f"{path}?{parsed.query}"
+    return redirect(path)

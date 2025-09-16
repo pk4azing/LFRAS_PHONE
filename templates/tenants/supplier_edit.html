@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Edit Supplier{% endblock %}
+
+{% block content %}
+<div class="page-body">
+  <div class="container-xxl">
+    {% include "partials/_alerts.html" %}
+    <div class="row">
+      <div class="col-lg-10 col-xl-8">
+        <div class="card">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Edit Supplier</h5>
+            <a class="btn btn-outline-secondary btn-sm" href="{% url 'tenants:supplier_detail' supplier.pk %}">Back</a>
+          </div>
+          <div class="card-body">
+            <form method="post" novalidate>
+              {% csrf_token %}
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <label class="form-label">Name</label>
+                  {{ form.name }}
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Point of Contact</label>
+                  {{ form.poc_name }}
+                </div>
+
+                <div class="col-md-6">
+                  <label class="form-label">Email</label>
+                  {{ form.email }}
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Phone</label>
+                  {{ form.phone }}
+                </div>
+
+                <div class="col-md-6">
+                  <label class="form-label">Address line 1</label>
+                  {{ form.address_line1 }}
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Address line 2</label>
+                  {{ form.address_line2 }}
+                </div>
+
+                <div class="col-md-4">
+                  <label class="form-label">City</label>
+                  {{ form.city }}
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label">State</label>
+                  {{ form.state }}
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label">Postal Code</label>
+                  {{ form.postal_code }}
+                </div>
+
+                <div class="col-md-6">
+                  <label class="form-label">Country</label>
+                  {{ form.country }}
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Subdomain</label>
+                  {{ form.subdomain }}
+                </div>
+
+                <div class="col-12">
+                  <label class="form-label">Notes</label>
+                  {{ form.notes }}
+                </div>
+
+                <div class="col-12 form-check mt-2">
+                  {{ form.is_active }} <label class="form-check-label">Active</label>
+                </div>
+              </div>
+
+              <div class="d-flex gap-2 mt-4">
+                <button class="btn btn-primary">Save changes</button>
+                <a class="btn btn-outline-secondary" href="{% url 'tenants:supplier_detail' supplier.pk %}">Cancel</a>
+              </div>
+            </form>
+
+            {% if form.errors %}
+            <div class="alert alert-danger mt-3">
+              Please fix the errors above.
+            </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

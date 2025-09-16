@@ -2,6 +2,16 @@ from django import forms
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth import password_validation
 from .models import User
+from django.core.exceptions import ValidationError
+
+# Creation permissions per role (authoritative server-side map)
+ALLOWED_CREATE = {
+    "LAD": ["LAD", "LUS"],   # Lucid Admin can create Lucid roles only
+    "LUS": ["LUS"],           # Lucid Staff can create Lucid Staff only
+    "EAD": ["EAD", "EST"],   # Evaluator Admin can create Evaluator roles
+    "EST": [],                 # Evaluator Staff cannot create users
+    "SUS": [],                 # Supplier Staff cannot create users
+}
 
 
 class EmailAuthenticationForm(AuthenticationForm):
@@ -72,6 +82,7 @@ class PasswordChangeSimpleForm(forms.Form):
         return cleaned
 
 
+
 class LucidUserForm(forms.ModelForm):
     class Meta:
         model = User
@@ -88,3 +99,27 @@ class LucidUserForm(forms.ModelForm):
             "postal_code",
             "country",
         ]
+
+    def __init__(self, *args, request_user=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Keep a reference to the user attempting to create/edit
+        self.request_user = request_user
+        # Narrow the role choices shown in the UI based on creator's role
+        if request_user is not None:
+            allowed = ALLOWED_CREATE.get(getattr(request_user, "role", None), [])
+            # If allowed is empty, leave choices empty to prevent selection
+            if allowed:
+                self.fields["role"].choices = [
+                    (code, label) for code, label in self.fields["role"].choices if code in allowed
+                ]
+            else:
+                self.fields["role"].choices = []
+                self.fields["role"].help_text = "You are not permitted to create users for other organizations."
+
+    def clean_role(self):
+        role = self.cleaned_data.get("role")
+        creator = getattr(self, "request_user", None)
+        allowed = ALLOWED_CREATE.get(getattr(creator, "role", None), [])
+        if role not in allowed:
+            raise ValidationError("You are not permitted to create a user with this role.")
+        return role

@@ -11,7 +11,7 @@ SECRET_KEY = os.getenv(
     "django-insecure-^7ajq9%b!&6*bbi@@9wp&g^p5=_l_7n06r^ob2dti9=p36_+5c",
 )
 DEBUG = os.getenv("DEBUG", "True").lower() in ("true", "1", "yes")
-ALLOWED_HOSTS = ["*", "localhost", "127.0.0.1"]
+ALLOWED_HOSTS = ["*", "localhost", "127.0.0.1", "0.0.0.0"]
 
 INSTALLED_APPS = [
     # Django Defined
@@ -79,9 +79,13 @@ ASGI_APPLICATION = "LFRAS_PHONE_AD.asgi.application"
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
 DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'postgres',  # database name
+        'USER': 'postgres.xougfnhgpvwbubzizznx',
+        'PASSWORD': 'Luc!d~2025_09',
+        'HOST': 'aws-1-us-west-1.pooler.supabase.com',
+        'PORT': '5432'
     }
 }
 
@@ -126,7 +130,7 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 
-EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 DEFAULT_FROM_EMAIL = "noreply@lucidcompliances.com"
 SALES_EMAIL = "sales@lucidcompliances.com"
 
@@ -166,3 +170,9 @@ STORAGES = {
 
 AWS_S3_FILE_OVERWRITE = False
 AWS_DEFAULT_ACL = None                  # keep objects private
+
+EMAIL_HOST = "smtp.gmail.com"
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = "your_email@gmail.com"         # full Gmail address
+EMAIL_HOST_PASSWORD = "your_app_password_here"  # use an App Password, not your Gmail login

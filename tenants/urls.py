@@ -12,5 +12,7 @@ app_name = "tenants"
 
 urlpatterns += [
     path("suppliers/<int:pk>/", views.supplier_detail, name="supplier_detail"),
+    path("suppliers/<int:pk>/edit/", views.supplier_edit, name="supplier_edit"),
     path("suppliers/<int:pk>/rules/upload/", views.rules_upload, name="rules_upload"),
+    path("suppliers/", views.suppliers_list, name="suppliers_list"),
 ]

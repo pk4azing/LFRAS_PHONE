@@ -114,3 +114,34 @@ class CreateEvaluatorUserForm(forms.Form):
                 )
 
         return data
+
+
+class SupplierForm(forms.ModelForm):
+    class Meta:
+        model = Supplier
+        fields = [
+            "name",
+            "poc_name",
+            "primary_email",
+            "phone",
+            "address_line1",
+            "address_line2",
+            "city",
+            "state",
+            "postal_code",
+            "country",
+            "subdomain",
+            "notes",
+            "is_active",
+        ]
+        widgets = {
+            "notes": forms.Textarea(attrs={"rows": 4}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for f in self.fields.values():
+            # Mofi/Bootstrap utility class for consistent styling
+            if not isinstance(f.widget, forms.CheckboxInput):
+                f.widget.attrs.setdefault("class", "form-control")
+        self.fields["is_active"].widget.attrs.setdefault("class", "form-check-input")
