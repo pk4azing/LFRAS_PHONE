@@ -2,150 +2,229 @@
 {% block title %}My Profile{% endblock %}
 
 {% block content %}
-    <div class="page-body">
-        <div class="container-fluid">
-            {% include "partials/_alerts.html" %}
-            <!-- Page header / breadcrumb -->
-            <div class="page-title">
-                <div class="row">
-                    <div class="col-6">
-                        <h3>Edit Profile</h3>
-                    </div>
-                    <div class="col-6">
-                        <ol class="breadcrumb">
-                            <li class="breadcrumb-item"><a href="{% url 'router:dashboard' %}">Dashboard</a></li>
-                            <li class="breadcrumb-item active">My Profile</li>
-                        </ol>
-                    </div>
-                </div>
-            </div>
+<div class="page-body">
+  <div class="container-fluid">
+    {% include "partials/_alerts.html" %}
 
-            <div class="row g-4">
-                <!-- Left column: avatar / account card -->
-                <div class="col-12 col-lg-4">
-                    <div class="card">
-                        <div class="card-body text-center">
-                            <div class="mb-3">
-                                {% if request.user.profile_photo %}
-                                    <img src="{{ request.user.profile_photo.url }}" alt="Avatar" class="rounded-circle"
-                                         style="width:96px;height:96px;object-fit:cover;">
-                                {% else %}
-                                    <div class="rounded-circle bg-light d-inline-flex align-items-center justify-content-center"
-                                         style="width:96px;height:96px;">
-                                        <span class="fw-bold text-muted">{{ request.user.first_name|default:request.user.last_name  }}</span>
-                                    </div>
-                                {% endif %}
-                            </div>
-                            <h6 class="mb-1">{{ request.user.first_name }}, {{ request.user.last_name }}</h6>
-                            <div class="text-muted small mb-3">{{ request.user.email|cut:"@" }}</div>
+    <!-- Local styles to tighten alignment and spacing -->
+    <style>
+      .profile-card .avatar {
+        width: 96px; height: 96px; object-fit: cover; border-radius: 50%;
+        box-shadow: 0 2px 8px rgba(0,0,0,.08);
+      }
+      .profile-card .avatar-fallback {
+        width: 96px; height: 96px; border-radius: 50%; background:#f3f4f6;
+        display:inline-flex; align-items:center; justify-content:center; font-weight:700; color:#6b7280;
+      }
+      .section-title { font-size: 0.95rem; font-weight: 700; color:#111827; letter-spacing:.3px; margin-bottom:.75rem; }
+      .subtle { color:#6b7280; }
+      .card { border-radius: 14px; }
+      .card-header { background:#fff; border-bottom:1px dashed #e5e7eb; }
+      .btn-wide { min-width: 160px; }
+      .keyline { height:1px; background:#eef2f7; margin: 16px 0; }
 
-                            <form method="post" enctype="multipart/form-data" action="{% url 'accounts:my_profile' %}">
-                                {% csrf_token %}
-                                <div class="mb-3 text-start">
-                                    <label class="form-label">Profile photo</label>
-                                    <input type="file" name="profile_photo" class="form-control"/>
-                                    {% if request.user.profile_photo and form.remove_photo %}
-                                        <div class="form-check mt-2">
-                                            {{ form.remove_photo }}
-                                            <label class="form-check-label" for="{{ form.remove_photo.id_for_label }}">Remove
-                                                current</label>
-                                        </div>
-                                    {% endif %}
-                                </div>
-                                <button class="btn btn-primary w-100" name="_save_avatar" value="1">Update Photo
-                                </button>
-                            </form>
+      .form-section { margin-bottom: 24px; }
+      .form-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(240px,1fr)); grid-gap: 20px; }
+      .form-grid .form-label { font-weight: 600; font-size: .9rem; margin-bottom: 4px; }
+      .card-body form input, .card-body form select { width: 100%; }
 
-                            <hr>
-                            <ul class="list-unstyled text-start small mb-0">
-                                <li class="d-flex justify-content-between"><span
-                                        class="text-muted">Role</span><span>{{ request.user.role }}</span></li>
-                                {% if request.user.evaluator %}
-                                    <li class="d-flex justify-content-between"><span class="text-muted">Evaluator</span><span>{{ request.user.evaluator.name }}</span>
-                                    </li>
-                                {% endif %}
-                                {% if request.user.supplier %}
-                                    <li class="d-flex justify-content-between"><span
-                                            class="text-muted">Supplier</span><span>{{ request.user.supplier.name }}</span>
-                                    </li>
-                                {% endif %}
-                            </ul>
-                        </div>
-                    </div>
-                </div>
+      /* Client-side validation visuals */
+      input:invalid, select:invalid { border-color: #ef4444 !important; }
+      .invalid-feedback { display:none; color:#b91c1c; font-size:12px; margin-top:4px; }
+      input:invalid + .invalid-feedback { display:block; }
+    </style>
 
-                <!-- Right column: edit form -->
-                <div class="col-12 col-lg-8">
-                    <div class="card">
-                        <div class="card-header">
-                            <h5 class="mb-0">Profile Details</h5>
-                        </div>
-                        <div class="card-body">
-                            <form method="post" enctype="multipart/form-data" action="{% url 'accounts:my_profile' %}">
-                                {% csrf_token %}
-
-                                {% if form.non_field_errors %}
-                                    <div class="alert alert-danger" role="alert">
-                                        {{ form.non_field_errors }}
-                                    </div>
-                                {% endif %}
-
-                                <div class="row g-3">
-                                    <div class="col-md-6">
-                                        <label class="form-label" for="{{ form.first_name.id_for_label }}">First
-                                            name</label>
-                                        {{ form.first_name }}
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label class="form-label" for="{{ form.last_name.id_for_label }}">Last
-                                            name</label>
-                                        {{ form.last_name }}
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label class="form-label" for="{{ form.phone.id_for_label }}">Phone</label>
-                                        {{ form.phone }}
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label class="form-label" for="{{ form.country.id_for_label }}">Country</label>
-                                        {{ form.country }}
-                                    </div>
-                                    <div class="col-12">
-                                        <label class="form-label" for="{{ form.address_line1.id_for_label }}">Address
-                                            line 1</label>
-                                        {{ form.address_line1 }}
-                                    </div>
-                                    <div class="col-12">
-                                        <label class="form-label" for="{{ form.address_line2.id_for_label }}">Address
-                                            line 2</label>
-                                        {{ form.address_line2 }}
-                                    </div>
-                                    <div class="col-md-4">
-                                        <label class="form-label" for="{{ form.city.id_for_label }}">City</label>
-                                        {{ form.city }}
-                                    </div>
-                                    <div class="col-md-4">
-                                        <label class="form-label" for="{{ form.state.id_for_label }}">State</label>
-                                        {{ form.state }}
-                                    </div>
-                                    <div class="col-md-4">
-                                        <label class="form-label" for="{{ form.postal_code.id_for_label }}">Postal
-                                            code</label>
-                                        {{ form.postal_code }}
-                                    </div>
-                                </div>
-
-                                <div class="d-flex gap-2 mt-4">
-                                    <button class="btn btn-primary" type="submit" name="_save_profile" value="1">Save
-                                        Changes
-                                    </button>
-                                    <a href="{% url 'accounts:change_password' %}" class="btn btn-outline-secondary">Change
-                                        Password</a>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-            </div>
+    <!-- Page header / breadcrumb -->
+    <div class="page-title">
+      <div class="row align-items-center">
+        <div class="col">
+          <h3 class="mb-0">Edit Your Profile</h3>
         </div>
+        <div class="col-auto">
+          <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="{% url 'router:dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item active">My Profile</li>
+          </ol>
+        </div>
+      </div>
     </div>
+
+    <div class="row g-4">
+      <!-- Left column: avatar / account card -->
+      <div class="col-12 col-lg-4">
+        <div class="card profile-card h-100">
+          <div class="card-body text-center">
+            <div class="mb-3">
+              {% if request.user.profile_photo %}
+                <img src="{{ request.user.profile_photo.url }}" alt="Avatar" class="avatar">
+              {% else %}
+                <div class="avatar-fallback">
+                  <span>{{ request.user.first_name|default:request.user.last_name|slice:":1"|upper }}</span>
+                </div>
+              {% endif %}
+            </div>
+            <h6 class="mb-1">{{ request.user.first_name }} {{ request.user.last_name }}</h6>
+            <div class="text-muted small mb-3">{{ request.user.email }}</div>
+
+            <form method="post" enctype="multipart/form-data" action="{% url 'accounts:my_profile' %}">
+              {% csrf_token %}
+              <div class="mb-3 text-start">
+                <label class="form-label">Profile photo</label>
+                <input type="file" name="profile_photo" class="form-control"/>
+                {% if request.user.profile_photo and form.remove_photo %}
+                  <div class="form-check mt-2">
+                    {{ form.remove_photo }}
+                    <label class="form-check-label" for="{{ form.remove_photo.id_for_label }}">Remove current</label>
+                  </div>
+                {% endif %}
+              </div>
+              <button class="btn btn-primary btn-wide w-100" name="_save_avatar" value="1">Update Photo</button>
+            </form>
+
+            <div class="keyline"></div>
+            <ul class="list-unstyled text-start small mb-0">
+              <li class="d-flex justify-content-between"><span class="subtle">Role</span><span>{{ request.user.role }}</span></li>
+              {% if request.user.evaluator %}
+                <li class="d-flex justify-content-between"><span class="subtle">Evaluator</span><span>{{ request.user.evaluator.name }}</span></li>
+              {% endif %}
+              {% if request.user.supplier %}
+                <li class="d-flex justify-content-between"><span class="subtle">Supplier</span><span>{{ request.user.supplier.name }}</span></li>
+              {% endif %}
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right column: edit form -->
+      <div class="col-12 col-lg-8">
+        <div class="card h-100">
+          <div class="card-header"><h5 class="mb-0">Profile Details</h5></div>
+          <div class="card-body">
+            <form method="post" enctype="multipart/form-data" action="{% url 'accounts:my_profile' %}">
+              {% csrf_token %}
+
+              {% if form.non_field_errors %}
+                <div class="alert alert-danger" role="alert">{{ form.non_field_errors }}</div>
+              {% endif %}
+
+              <!-- Personal Information -->
+              <div class="section-title">Personal information</div>
+              <div class="form-grid">
+                <div>
+                  <label class="form-label" for="{{ form.first_name.id_for_label }}">First name <span style="color:#dc2626">*</span></label>
+                  {{ form.first_name }}
+                  <div class="invalid-feedback">Only letters, spaces, hyphens or apostrophes. 2–50 chars.</div>
+                </div>
+                <div>
+                  <label class="form-label" for="{{ form.last_name.id_for_label }}">Last name <span style="color:#dc2626">*</span></label>
+                  {{ form.last_name }}
+                  <div class="invalid-feedback">Only letters, spaces, hyphens or apostrophes. 2–50 chars.</div>
+                </div>
+                <div>
+                  <label class="form-label" for="{{ form.phone.id_for_label }}">Phone <span style="color:#dc2626">*</span></label>
+                  {{ form.phone }}
+                  <div class="invalid-feedback">Use digits and + ( ) - spaces only.</div>
+                </div>
+                <div>
+                  <label class="form-label" for="{{ form.country.id_for_label }}">Country <span style="color:#dc2626">*</span></label>
+                  {{ form.country }}
+                  <div class="invalid-feedback">Please select a country.</div>
+                </div>
+              </div>
+
+              <!-- Address -->
+              <div class="section-title mt-2">Address</div>
+              <div class="form-grid">
+                <div>
+                  <label class="form-label" for="{{ form.address_line1.id_for_label }}">Address line 1 <span style="color:#dc2626">*</span></label>
+                  {{ form.address_line1 }}
+                  <div class="invalid-feedback">A bit more detail, 5–120 chars, No Gibberish.</div>
+                </div>
+                <div>
+                  <label class="form-label" for="{{ form.address_line2.id_for_label }}">Address line 2</label>
+                  {{ form.address_line2 }}
+                  <div class="invalid-feedback">Optional. 0–120 chars. No Gibberish</div>
+                </div>
+                <div>
+                  <label class="form-label" for="{{ form.city.id_for_label }}">City <span style="color:#dc2626">*</span></label>
+                  {{ form.city }}
+                  <div class="invalid-feedback">Letters/numbers & spaces, 2–64 chars.</div>
+                </div>
+                <div>
+                  <label class="form-label" for="{{ form.state.id_for_label }}">State <span style="color:#dc2626">*</span></label>
+                  {{ form.state }}
+                  <div class="invalid-feedback">Letters/numbers & spaces, 2–64 chars.</div>
+                </div>
+                <div>
+                  <label class="form-label" for="{{ form.postal_code.id_for_label }}">Postal code <span style="color:#dc2626">*</span></label>
+                  {{ form.postal_code }}
+                  <div class="invalid-feedback">Numbers only (4–10 digits).</div>
+                </div>
+              </div>
+
+              <div class="d-flex flex-wrap gap-2 mt-2">
+                <button class="btn btn-primary btn-wide" type="submit" name="_save_profile" value="1">Save Changes</button>
+                <a href="{% url 'accounts:change_password' %}" class="btn btn-outline-secondary btn-wide">Change Password</a>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    <script>
+      document.addEventListener('DOMContentLoaded', function(){
+        function setAttrs(el, attrs){ if(!el) return; Object.entries(attrs).forEach(([k,v])=>el.setAttribute(k,v)); }
+        const byName = n => document.querySelector(`[name="${n}"]`);
+
+        // Names: letters, spaces, hyphen, apostrophe; 2-50
+        setAttrs(byName('first_name'), { pattern: "^[A-Za-z][A-Za-z'\\- ]{1,49}$", minlength: "2", maxlength: "50", required: "required", inputmode: "text", autocomplete: "given-name" });
+        setAttrs(byName('last_name'),  { pattern: "^[A-Za-z][A-Za-z'\\- ]{1,49}$", minlength: "2", maxlength: "50", required: "required", inputmode: "text", autocomplete: "family-name" });
+
+        // Phone: digits + allowed symbols, 7-20
+        setAttrs(byName('phone'), { pattern: "^[+0-9()\\- ]{7,20}$", maxlength: "20", inputmode: "tel", autocomplete: "tel" });
+
+        // Country required (if select)
+        const country = byName('country'); if(country){ country.required = true; }
+
+        // Address lines
+        setAttrs(byName('address_line1'), { minlength: "5", maxlength: "120", autocomplete: "address-line1" });
+        setAttrs(byName('address_line2'), { maxlength: "120", autocomplete: "address-line2" });
+
+        // City/State: 2-64, letters/numbers/spaces
+        setAttrs(byName('city'),  { pattern: "^[A-Za-z0-9][A-Za-z0-9 .,'\\-]{1,63}$", minlength: "2", maxlength: "64", autocomplete: "address-level2" });
+        setAttrs(byName('state'), { pattern: "^[A-Za-z0-9][A-Za-z0-9 .,'\\-]{1,63}$", minlength: "2", maxlength: "64", autocomplete: "address-level1" });
+
+        // Postal code: digits only, 4-10
+        setAttrs(byName('postal_code'), { pattern: "^\\d{4,10}$", minlength: "4", maxlength: "10", inputmode: "numeric", autocomplete: "postal-code" });
+
+        // Prevent obvious gibberish: collapse repeated characters >4 (client-side hint)
+        const likelyGibberish = /([A-Za-z])\1{4,}/;
+        ['first_name','last_name','city','state'].forEach(name=>{
+          const el = byName(name); if(!el) return;
+          el.addEventListener('input', () => {
+            const val = el.value || '';
+            if(likelyGibberish.test(val)) el.setCustomValidity('Please avoid repeated characters.');
+            else el.setCustomValidity('');
+          });
+        });
+
+        // Address lines: disallow gibberish or >2 consecutive special chars
+        const specialSeq = /[\W_]{3,}/; // any non-word (special) repeated 3+
+        ['address_line1','address_line2'].forEach(name=>{
+          const el = byName(name); if(!el) return;
+          el.addEventListener('input', () => {
+            const val = el.value || '';
+            if(likelyGibberish.test(val)) {
+              el.setCustomValidity('Please avoid repeated characters.');
+            } else if(specialSeq.test(val)) {
+              el.setCustomValidity('Please avoid more than 2 consecutive special characters.');
+            } else {
+              el.setCustomValidity('');
+            }
+          });
+        });
+      });
+    </script>
 {% endblock %}

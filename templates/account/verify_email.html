@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container" style="max-width:520px;margin-top:30px">
+  <div class="card p-4 shadow-sm">
+    <h4 class="mb-3">Verify your email</h4>
+    <form method="post">
+      {% csrf_token %}
+      <div class="mb-3">
+        <label class="form-label">Email</label>
+        <input class="form-control" type="email" name="email" required>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">OTP Code</label>
+        <input class="form-control" type="text" name="code" pattern="[0-9]{6}" maxlength="6" required>
+        <div class="form-text">6-digit code we emailed you</div>
+      </div>
+      <button class="btn btn-primary w-100" type="submit">Verify</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

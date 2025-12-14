@@ -12,7 +12,28 @@
             </div>
 
             <div class="card-body">
-              <form method="post" class="theme-form" novalidate>
+              <style>
+                /* Even responsive grid for form fields */
+                .even-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+                /* Field highlight */
+                .form-highlight{padding:6px;border-radius:10px;transition:background .15s ease, box-shadow .15s ease}
+                .form-highlight .form-label{transition:color .15s ease;font-weight:600}
+                .form-highlight:focus-within .form-label{color:#2563eb}
+                .form-highlight.has-value .form-label{color:#111827}
+                /* Input sizing + validity visuals */
+                .theme-form input[type="text"],
+                .theme-form input[type="email"],
+                .theme-form input[type="number"],
+                .theme-form input[type="date"],
+                .theme-form input[type="password"],
+                .theme-form select,
+                .theme-form textarea{width:100%;height:44px}
+                .theme-form textarea{min-height:120px}
+                input:invalid, select:invalid, textarea:invalid{border-color:#ef4444!important}
+                .invalid-feedback{font-size:.85rem}
+                .form-text{font-size:.8rem;color:#6b7280}
+              </style>
+              <form method="post" class="theme-form">
                 {% csrf_token %}
 
                 {# top-level non-field errors #}
@@ -22,9 +43,9 @@
                   </div>
                 {% endif %}
 
-                <div class="row g-3">
+                <div class="even-grid">
                   {% for field in form %}
-                    <div class="col-12">
+                    <div class="form-highlight" data-name="{{ field.name }}">
                       <div class="mb-3">
                         <label class="form-label" for="{{ field.id_for_label }}">
                           {{ field.label }}{% if field.field.required %}<span class="text-danger"> *</span>{% endif %}
@@ -49,6 +70,86 @@
                     {% if form.instance.pk %}Update User{% else %}Create User{% endif %}
                   </button>
                 </div>
+              <script>
+                (function(){
+                  const form = document.currentScript.closest('form');
+                  if(!form) return;
+                  const byName = (n) => form.querySelector('[name="'+n+'"]');
+                  const set = (el, attrs) => { if(!el) return; Object.entries(attrs).forEach(([k,v])=> el.setAttribute(k,v)); };
+
+                  // Names: required, 2–50, letters, spaces, hyphen, apostrophe
+                  set(byName('first_name'), { required: 'required', pattern: "^[A-Za-z][A-Za-z'\\- ]{1,49}$", minlength: '2', maxlength: '50', autocomplete: 'given-name', title: "Only letters, spaces, hyphen (-) or apostrophe (')" });
+                  set(byName('last_name'),  { required: 'required', pattern: "^[A-Za-z][A-Za-z'\\- ]{1,49}$", minlength: '2', maxlength: '50', autocomplete: 'family-name', title: "Only letters, spaces, hyphen (-) or apostrophe (')" });
+
+                  // Email restricted to lucidcompliances.com domain
+                  const emailEl = byName('email') || form.querySelector('input[type="email"]');
+                  set(emailEl, {
+                    type: 'email', required: 'required', autocomplete: 'email',
+                    pattern: '^[A-Za-z0-9._%+-]+@lucidcompliances\\.com$',
+                    title: 'Email must be @lucidcompliances.com'
+                  });
+
+                  // Phone number validation
+                  const phoneEl = byName('phone') || byName('mobile') || byName('contact') || form.querySelector('input[name*="phone" i]');
+                  set(phoneEl, { pattern: "^[+0-9()\\- ]{7,20}$", maxlength: '20', inputmode: 'tel', autocomplete: 'tel', title: 'Use digits and + ( ) - space, 7–20 chars' });
+
+                  const userEl = byName('username');
+                  set(userEl, { minlength: '3', maxlength: '30', pattern: '^[A-Za-z0-9._-]{3,30}$', autocomplete: 'username' });
+
+                  const pass1 = byName('password') || byName('password1');
+                  const pass2 = byName('confirm_password') || byName('password2');
+                  set(pass1, { minlength: '8', autocomplete: 'new-password' });
+                  set(pass2, { minlength: '8', autocomplete: 'new-password' });
+
+                  // State validation (optional but constrained)
+                  const stateEl = byName('state');
+                  set(stateEl, { pattern: "^[A-Za-z][A-Za-z .,'\\-]{1,63}$", minlength: '2', maxlength: '64', title: 'Letters, spaces, and . , \' - allowed' });
+
+                  // Postal code: digits only
+                  const postalEl = byName('postal_code') || byName('zipcode') || byName('pin');
+                  set(postalEl, { pattern: "^\\d{4,10}$", inputmode: 'numeric', minlength: '4', maxlength: '10', title: '4–10 digits' });
+
+                  // Country must be selected/filled
+                  const countryEl = byName('country');
+                  if (countryEl) {
+                    if (countryEl.tagName === 'SELECT') { countryEl.required = true; }
+                    else { set(countryEl, { required: 'required', minlength: '2', maxlength: '56' }); }
+                  }
+
+                  // Address lines: anti-gibberish and length caps
+                  const specialSeq = /[\W_]{3,}/;      // 3+ consecutive non-word/special chars
+                  const repeatedAlpha = /([A-Za-z])\1{4,}/; // 5+ repeated same letter
+                  ['address_line1','address_line2','address','street'].forEach(function(name){
+                    const el = byName(name); if(!el) return;
+                    set(el, { maxlength: '120' });
+                    const validate = () => {
+                      const v = (el.value||'').trim();
+                      if (specialSeq.test(v))      el.setCustomValidity('Avoid more than 2 consecutive special characters.');
+                      else if (repeatedAlpha.test(v)) el.setCustomValidity('Please avoid repeated characters.');
+                      else el.setCustomValidity('');
+                    };
+                    el.addEventListener('input', validate);
+                    validate();
+                  });
+
+                  // Date-like fields: enable native picker (name contains date/dob/join etc.)
+                  const dateCandidates = form.querySelectorAll('input[type="text"][name*="date" i], input[type="text"][name*="dob" i], input[type="text"][name*="join" i]');
+                  dateCandidates.forEach(function(el){ try { el.type = 'date'; } catch(e) {} el.setAttribute('autocomplete','off'); });
+
+                  // Highlight behavior for all inputs/selects/textareas
+                  const fields = form.querySelectorAll('input, select, textarea');
+                  fields.forEach(function(el){
+                    const box = el.closest('.form-highlight');
+                    if(!box) return;
+                    function sync(){ (el.value||'').trim()!=='' ? box.classList.add('has-value') : box.classList.remove('has-value'); }
+                    el.addEventListener('focus', ()=> box.classList.add('is-focus'));
+                    el.addEventListener('blur', ()=> { box.classList.remove('is-focus'); sync(); });
+                    el.addEventListener('input', sync);
+                    el.addEventListener('change', sync);
+                    sync();
+                  });
+                })();
+              </script>
               </form>
             </div>
           </div>

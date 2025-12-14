@@ -5,6 +5,7 @@ from django.db import models
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.db.models import Count, Sum
+from django.db.models.functions import TruncDate
 from django.db.models.functions import TruncMonth
 from django.shortcuts import redirect, render
 from django.utils import timezone
@@ -17,12 +18,19 @@ from documents.models import Document
 
 
 def _parse_range(request):
-    """Parse ?range=7d|30d|90d (default 30d). Returns (start, end, label)."""
+    """Parse ?range=day|week|month or 7d|30d|90d (default month=30d). Returns (start, end, label)."""
     end = timezone.now()
     rng = (request.GET.get("range") or "").lower()
-    days = 30 if rng not in {"7d", "90d"} else (7 if rng == "7d" else 90)
+    if rng in {"day", "1d"}:
+        days, label = 1, "last 1 day"
+    elif rng in {"week", "7d"}:
+        days, label = 7, "last 7 days"
+    elif rng in {"90d"}:
+        days, label = 90, "last 90 days"
+    else:  # month or default
+        days, label = 30, "last 30 days"
     start = end - timedelta(days=days)
-    return start, end, f"last{days}"
+    return start, end, label
 
 
 def _shift_month(d: date, delta_months: int) -> date:
@@ -169,6 +177,10 @@ def lad_dashboard(request):
         from payments.models import PaymentTransaction
     except Exception:
         PaymentTransaction = None
+    try:
+        from payments.models import PaymentRecord
+    except Exception:
+        PaymentRecord = None
 
     eval_count = Evaluator.objects.filter(is_active=True).count()
     supplier_count = Supplier.objects.count()
@@ -251,6 +263,125 @@ def lad_dashboard(request):
         else []
     )
 
+    # ----- RANGE-AWARE CHARTS (Evaluators / Payments count / Payments amount) -----
+    # Map range to granularity and window
+    rng = (request.GET.get("range") or "week").lower()
+    if rng not in {"day", "week", "month", "7d", "30d", "90d", "1d"}:
+        rng = "week"
+    # Normalize aliases
+    if rng == "7d":
+        rng = "week"
+    if rng in {"30d", "90d", "1d"}:  # collapse 30d->month (approx), 1d->day, keep 90d as 90d window with day granularity
+        rng = {"30d": "month", "90d": "month", "1d": "day"}[rng]
+
+    now = timezone.localtime()
+    start_dt = start  # from _parse_range
+    end_dt = end
+    gran = "hour" if rng == "day" else "day"
+
+    from collections import OrderedDict
+    from datetime import datetime as _dt, date as _date
+
+    def bucket_keys():
+        keys = []
+        if gran == "hour":
+            cur = start_dt.replace(minute=0, second=0, microsecond=0)
+            till = end_dt.replace(minute=0, second=0, microsecond=0)
+            while cur <= till:
+                keys.append(cur)
+                cur += timedelta(hours=1)
+        else:
+            cur = start_dt.date()
+            till = end_dt.date()
+            while cur <= till:
+                # store as datetime for consistent keys
+                keys.append(_dt.combine(cur, _dt.min.time(), tzinfo=now.tzinfo))
+                cur += timedelta(days=1)
+        return keys
+
+    def label_for(dt):
+        return dt.strftime("%b %d, %H:00") if gran == "hour" else dt.strftime("%b %d")
+
+    def to_bucket(v):
+        d = v
+        if isinstance(d, str):
+            for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%dT%H:%M:%S.%f%z", "%Y-%m-%dT%H:%M:%S%z", "%Y-%m-%d"):
+                try:
+                    d = _dt.strptime(d[:len(fmt)], fmt)
+                    break
+                except Exception:
+                    continue
+        if isinstance(d, _date) and not isinstance(d, _dt):
+            d = _dt.combine(d, _dt.min.time(), tzinfo=now.tzinfo)
+        if not isinstance(d, _dt):
+            return None
+        return d.replace(minute=0, second=0, microsecond=0, tzinfo=now.tzinfo) if gran == "hour" else _dt.combine(d.date(), _dt.min.time(), tzinfo=now.tzinfo)
+
+    keys = bucket_keys()
+
+    # Evaluators Created
+    eval_series = OrderedDict((k, 0) for k in keys)
+    for r in (
+        Evaluator.objects
+        .filter(created_at__gte=start_dt, created_at__lte=end_dt)
+        .values("created_at")
+    ):
+        b = to_bucket(r["created_at"])
+        if b in eval_series:
+            eval_series[b] += 1
+    eval_labels = [label_for(k) for k in eval_series.keys()]
+    eval_data = list(eval_series.values())
+
+    # Payments (count & amount) — detect model/fields
+    try:
+        from payments.models import PaymentTransaction
+    except Exception:
+        PaymentTransaction = None
+    try:
+        from payments.models import PaymentRecord
+    except Exception:
+        PaymentRecord = None
+
+    def detect_fields(model):
+        if not model:
+            return None, None
+        names = {f.name for f in model._meta.get_fields()}
+        date_f = "paid_on" if "paid_on" in names else ("created_at" if "created_at" in names else None)
+        amt_f = "amount" if "amount" in names else ("total_amount" if "total_amount" in names else None)
+        return date_f, amt_f
+
+    pay_model = PaymentTransaction or PaymentRecord
+    pay_date_field, pay_amount_field = detect_fields(pay_model)
+
+    pay_count_series = OrderedDict((k, 0) for k in keys)
+    pay_amount_series = OrderedDict((k, 0.0) for k in keys)
+
+    if pay_model and pay_date_field:
+        rows_qs = pay_model.objects.filter(**{f"{pay_date_field}__gte": start_dt, f"{pay_date_field}__lte": end_dt})
+        if pay_amount_field:
+            rows_qs = rows_qs.values(pay_date_field, pay_amount_field)
+        else:
+            rows_qs = rows_qs.values(pay_date_field)
+        for r in rows_qs:
+            b = to_bucket(r.get(pay_date_field))
+            if b in pay_count_series:
+                pay_count_series[b] += 1
+                if pay_amount_field:
+                    amt = r.get(pay_amount_field) or 0
+                    try:
+                        pay_amount_series[b] += float(amt)
+                    except Exception:
+                        from decimal import Decimal
+                        try:
+                            pay_amount_series[b] += float(Decimal(amt))
+                        except Exception:
+                            pass
+
+    pay_count_labels = [label_for(k) for k in pay_count_series.keys()]
+    pay_count_data = list(pay_count_series.values())
+    pay_amount_labels = [label_for(k) for k in pay_amount_series.keys()]
+    pay_amount_data = list(pay_amount_series.values())
+
     ctx = dict(
         range_label=label,
         start=start,
@@ -270,6 +401,13 @@ def lad_dashboard(request):
         recent_suppliers=recent_suppliers,
         recent_tickets=recent_tickets,
         recent_payments=recent_payments,
+        range=rng,
+        eval_labels=eval_labels,
+        eval_data=eval_data,
+        pay_count_labels=pay_count_labels,
+        pay_count_data=pay_count_data,
+        pay_amount_labels=pay_amount_labels,
+        pay_amount_data=pay_amount_data,
     )
     return render(request, "dash/lad.html", ctx)
 
@@ -414,6 +552,13 @@ def ead_dashboard(request):
     elif plan_key == "enterprise":
         usage_limits = {"suppliers": None, "users": None}
 
+    # Usage tracking: how many suppliers, users, documents, and activities are used
+    usage_used = {
+        "suppliers": supplier_count,
+        "users": evs_count,
+        "documents": docs_count,
+        "activities": act_count,
+    }
     ctx = dict(
         range_label=label,
         start=start,
@@ -429,6 +574,7 @@ def ead_dashboard(request):
         chart_docs=chart_docs,
         chart_acts=chart_acts,
         usage_limits=usage_limits,
+        usage_used=usage_used,
     )
     return render(request, "dash/ead.html", ctx)
 

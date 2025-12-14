@@ -15,12 +15,25 @@
           <h5 class="mb-0">Create Ticket</h5>
         </div>
         <div class="card-body">
-          <form method="post" enctype="multipart/form-data" novalidate>
+          <style>
+            /* Even grid + polished inputs */
+            .even-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+            .form-highlight{padding:6px;border-radius:10px;transition:background .15s ease, box-shadow .15s ease}
+            .form-highlight .form-label{transition:color .15s ease;font-weight:600}
+            .form-highlight:focus-within{background:#f3f8ff;box-shadow:0 0 0 3px rgba(37,99,235,.15)}
+            .form-highlight:focus-within .form-label{color:#2563eb}
+            .form-highlight.has-value .form-label{color:#111827}
+            .invalid-feedback{font-size:.85rem}
+            .form-text{font-size:.8rem;color:#6b7280}
+            input:invalid, select:invalid, textarea:invalid{border-color:#ef4444!important}
+          </style>
+          <form method="post" enctype="multipart/form-data">
             {% csrf_token %}
 
-            <div class="mb-3">
-              <label class="form-label">Title</label>
+            <div class="mb-3 form-highlight">
+              <label class="form-label">Title <span style="color:#dc2626">*</span></label>
               {{ form.title }}
+              <div class="form-text">Keep it concise and specific (10–120 characters).</div>
               {% if form.title.errors %}
                 <div class="invalid-feedback d-block">
                   {% for e in form.title.errors %}{{ e }}{% if not forloop.last %}<br>{% endif %}{% endfor %}
@@ -28,9 +41,10 @@
               {% endif %}
             </div>
 
-            <div class="mb-3">
-              <label class="form-label">Description</label>
+            <div class="mb-3 form-highlight">
+              <label class="form-label">Description <span style="color:#dc2626">*</span></label>
               {{ form.description }}
+              <div class="form-text"><span id="desc-count">0</span>/2000</div>
               {% if form.description.errors %}
                 <div class="invalid-feedback d-block">
                   {% for e in form.description.errors %}{{ e }}{% if not forloop.last %}<br>{% endif %}{% endfor %}
@@ -38,29 +52,25 @@
               {% endif %}
             </div>
 
-            <div class="row g-3">
-              <div class="col-md-4">
+            <div class="row g-3 even-grid">
+              <div class="col-md-4 form-highlight">
                 <label class="form-label">Priority</label>
                 {{ form.priority }}
               </div>
-              <div class="col-md-4">
+              <div class="col-md-4 form-highlight">
                 <label class="form-label">Due date</label>
                 {{ form.due_date }}
               </div>
-              <div class="col-md-4">
+              <div class="col-md-4 form-highlight">
                 <label class="form-label">Assignee</label>
                 {{ form.assignee }}
               </div>
             </div>
 
-            <div class="row g-3 mt-1">
-              <div class="col-md-6">
+            <div class="row g-3 mt-1 even-grid">
+              <div class="col-md-6 form-highlight">
                 <label class="form-label">Evaluator</label>
                 {{ form.evaluator }}
-              </div>
-              <div class="col-md-6">
-                <label class="form-label">Supplier</label>
-                {{ form.supplier }}
               </div>
             </div>
 
@@ -74,6 +84,52 @@
               <button class="btn btn-primary">Create</button>
               <a class="btn btn-outline-secondary" href="{% url 'tickets:list' %}">Cancel</a>
             </div>
+            <script>
+              (function(){
+                const form = document.currentScript.closest('form');
+                if(!form) return;
+                const q = n => form.querySelector(`[name="${n}"]`);
+
+                // Set HTML5 validation attributes
+                const titleEl = q('{{ form.title.name }}');
+                const descEl  = q('{{ form.description.name }}');
+                if (titleEl) {
+                  titleEl.setAttribute('required','required');
+                  titleEl.setAttribute('minlength','10');
+                  titleEl.setAttribute('maxlength','120');
+                }
+                if (descEl) {
+                  descEl.setAttribute('required','required');
+                  descEl.setAttribute('maxlength','2000');
+                  const counter = document.getElementById('desc-count');
+                  const syncCount = () => { if(counter) counter.textContent = String((descEl.value||'').length); };
+                  descEl.addEventListener('input', syncCount); syncCount();
+                }
+
+                // Priority and Assignee required
+                const priorityEl = q('{{ form.priority.name }}');
+                const assigneeEl = q('{{ form.assignee.name }}');
+                if (priorityEl) priorityEl.required = true;
+                if (assigneeEl) assigneeEl.required = true;
+
+                // Due date: enforce native date picker
+                const dueEl = q('{{ form.due_date.name }}');
+                if (dueEl) { try { dueEl.type = 'date'; } catch(e) {} dueEl.setAttribute('autocomplete','off'); }
+
+                // Highlight containers on focus/value
+                const fields = form.querySelectorAll('input, select, textarea');
+                fields.forEach(function(el){
+                  const box = el.closest('.form-highlight');
+                  if(!box) return;
+                  function sync(){ (el.value||'').trim()!=='' ? box.classList.add('has-value') : box.classList.remove('has-value'); }
+                  el.addEventListener('focus', ()=> box.classList.add('is-focus'));
+                  el.addEventListener('blur', ()=> { box.classList.remove('is-focus'); sync(); });
+                  el.addEventListener('input', sync);
+                  el.addEventListener('change', sync);
+                  sync();
+                });
+              })();
+            </script>
           </form>
         </div>
       </div>

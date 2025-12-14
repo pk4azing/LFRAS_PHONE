@@ -8,3 +8,13 @@
     {% endfor %}
   </div>
 {% endif %}
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    setTimeout(function() {
+      document.querySelectorAll(".alert.auto-hide").forEach(function(alert) {
+        var bsAlert = new bootstrap.Alert(alert);
+        bsAlert.close();
+      });
+    }, 3000); // 3 seconds
+  });
+</script>

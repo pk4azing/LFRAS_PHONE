@@ -19,12 +19,16 @@ from .views import (
     create_lucid_user,
     logout_get,
     user_toggle_active,
+    verify_email,
 )
 
 urlpatterns = [
     # Session auth
     path("login/", LoginViewCustom.as_view(), name="login"),
     path("logout/", logout_get, name="logout"),
+
+    path("verify-email/", verify_email, name="verify_email"),
+
     # Forgot / reset password (built-in)
     path(
         "password-reset/",
@@ -39,14 +43,14 @@ urlpatterns = [
     path(
         "password-reset/done/",
         PasswordResetDoneView.as_view(
-            template_name="registration/password_reset_done.html",
+            template_name="auth/password_reset_done.html",
         ),
         name="password_reset_done",
     ),
     path(
         "reset/<uidb64>/<token>/",
         PasswordResetConfirmView.as_view(
-            template_name="registration/password_reset_confirm.html",
+            template_name="auth/password_reset_confirm.html",
             success_url=reverse_lazy("accounts:password_reset_complete"),
         ),
         name="password_reset_confirm",
@@ -54,7 +58,7 @@ urlpatterns = [
     path(
         "reset/done/",
         PasswordResetCompleteView.as_view(
-            template_name="registration/password_reset_complete.html",
+            template_name="auth/password_reset_complete.html",
         ),
         name="password_reset_complete",
     ),

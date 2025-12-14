@@ -10,6 +10,9 @@ import re
 import uuid
 from django.utils import timezone
 
+import secrets
+import string
+
 
 class Roles(models.TextChoices):
     LAD = "LAD", "Lucid Admin"
@@ -141,3 +144,19 @@ class User(AbstractBaseUser, PermissionsMixin):
     @property
     def redirect_path(self) -> str:
         return role_redirect_path(self.role)
+
+
+# OTP model for email verification
+class EmailOtp(models.Model):
+    email = models.EmailField()
+    code = models.CharField(max_length=10)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    verified_at = models.DateTimeField(null=True, blank=True)
+
+    def __str__(self):
+        return f"OTP for {self.email} - {self.code}"
+
+    @staticmethod
+    def generate_code(length=6):
+        return ''.join(secrets.choice(string.digits) for _ in range(length))

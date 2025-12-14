@@ -1,9 +1,12 @@
 from pathlib import Path
 import os
+from dotenv import load_dotenv
 from datetime import timedelta
 
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+load_dotenv(BASE_DIR / ".env")
 
 
 SECRET_KEY = os.getenv(
@@ -130,18 +133,19 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 
-EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-DEFAULT_FROM_EMAIL = "noreply@lucidcompliances.com"
-SALES_EMAIL = "sales@lucidcompliances.com"
+# Email / SMTP configuration (values loaded from .env)
+EMAIL_BACKEND = os.getenv("EMAIL_BACKEND", "django.core.mail.backends.smtp.EmailBackend")
+DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", os.getenv("EMAIL_HOST_USER", "notifications-noreply@lucidcompliances.com"))
+SALES_EMAIL = os.getenv("SALES_EMAIL", "sales@lucidcompliances.com")
 
 LUCID_EXPIRY_REMINDER_OFFSETS = [30, 14, 7, 1]  # days before expires_at
 LUCID_EXPIRY_POST_INTERVAL_DAYS = 7
 
 
-AWS_ACCESS_KEY_ID = "AKIAWKLBNBBEFDC7NLZF"
-AWS_SECRET_ACCESS_KEY = "V4mfvenNDoXD1L7vaJfdF4oshU4V3dHR9Ly0mJyh"
-AWS_STORAGE_BUCKET_NAME = "lfras-data"
-AWS_S3_REGION_NAME = "us-east-1"  # e.g. us-east-1
+AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID", "")
+AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY", "")
+AWS_STORAGE_BUCKET_NAME = os.getenv("AWS_STORAGE_BUCKET_NAME", "lfras-data")
+AWS_S3_REGION_NAME = os.getenv("AWS_S3_REGION_NAME", "us-east-1")  # e.g. us-east-1
 AWS_QUERYSTRING_AUTH = True
 
 DJANGO_CRON_LOCK_BACKEND = "django_cron.backends.lock.cache.CacheLock"
@@ -168,11 +172,22 @@ STORAGES = {
     "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
 }
 
+CSRF_TRUSTED_ORIGINS = [
+    "https://lucidcompliances.com",
+    "https://www.lucidcompliances.com",
+]
+
 AWS_S3_FILE_OVERWRITE = False
 AWS_DEFAULT_ACL = None                  # keep objects private
 
-EMAIL_HOST = "smtp.gmail.com"
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
-EMAIL_HOST_USER = "your_email@gmail.com"         # full Gmail address
-EMAIL_HOST_PASSWORD = "your_app_password_here"  # use an App Password, not your Gmail login
+EMAIL_HOST = os.getenv("EMAIL_HOST", "smtp.gmail.com")
+EMAIL_PORT = int(os.getenv("EMAIL_PORT", "587"))
+EMAIL_USE_TLS = os.getenv("EMAIL_USE_TLS", "true").lower() in ("1","true","yes")
+EMAIL_USE_SSL = os.getenv("EMAIL_USE_SSL", "false").lower() in ("1","true","yes")
+EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "")
+EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", "")  # e.g., Gmail App Password
+
+SLACK_WEBHOOK_URL = os.getenv("SLACK_WEBHOOK_URL", "")
+
+FORCE_SMTP_IN_DEBUG = os.getenv("FORCE_SMTP_IN_DEBUG", "true").lower() in ("1", "true", "yes")
+SITE_BASE_URL = os.getenv("SITE_BASE_URL", "http://173.212.203.137:5372")

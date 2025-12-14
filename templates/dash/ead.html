@@ -3,52 +3,60 @@
 
 {% block content %}
     <div class="page-body">
-        <div class="d-flex justify-content-between align-items-start mb-3">
-            <div>
-                <h4 class="mb-1">Evaluator — Project Dashboard</h4>
-                <div class="text-muted small">
-                    Range: {{ start|date:"Y-m-d" }} → {{ end|date:"Y-m-d" }} ({{ range_label }})
-                </div>
-            </div>
-            <div class="d-flex gap-2">
-                <a class="btn btn-primary" href="{% url 'tenants:new_supplier' %}">Create Supplier</a>
-                <a class="btn btn-outline-primary" href="{% url 'tenants:suppliers_list' %}">All Suppliers</a>
-                <a class="btn btn-outline-secondary" href="{% url 'tickets:new' %}">New Ticket</a>
+    <div class="d-flex justify-content-between align-items-start mb-3">
+        <div>
+            <h4 class="mb-1">Evaluator — Project Dashboard</h4>
+            <div class="text-muted small">
+                Range: {{ start|date:"Y-m-d" }} → {{ end|date:"Y-m-d" }} ({{ range_label }})
             </div>
         </div>
+        <div class="d-flex gap-2">
+            <a class="btn btn-primary" href="{% url 'tenants:new_supplier' %}">Create Supplier</a>
+            <a class="btn btn-outline-primary" href="{% url 'tenants:suppliers_list' %}">All Suppliers</a>
+            <a class="btn btn-outline-secondary" href="{% url 'tickets:new' %}">New Ticket</a>
+        </div>
+    </div>
 
-        <!-- Plan snapshot -->
-        <div class="card mb-3">
-            <div class="card-body">
-                <div class="row g-3">
-                    <div class="col-12 col-md-3">
-                        <div class="text-muted small">Current Plan</div>
-                        <div class="fs-5">
-                            {% if active_plan %}
-                                {% if active_plan.plan_name %}{{ active_plan.plan_name }}{% else %}
-                                    {{ active_plan.plan|title }}{% endif %}
-                            {% else %}—{% endif %}
-                        </div>
+    <!-- Plan snapshot -->
+    <div class="card border-0 shadow-sm mb-4"
+         style="background: linear-gradient(180deg, #fdfdff 0%, #f3f6fb 100%); border-radius: 12px;">
+        <div class="card-body p-4" style="border-radius: 12px;">
+            <div class="row g-4 align-items-center">
+                <div class="col-12 col-md-3">
+                    <div class="text-muted small">Current Plan</div>
+                    <div class="fs-5 fw-semibold text-dark">
+                        {% if active_plan %}
+                            {% if active_plan.plan_name %}{{ active_plan.plan_name }}{% else %}
+                                {{ active_plan.plan|title }}{% endif %}
+                        {% else %}—{% endif %}
                     </div>
-                    <div class="col-12 col-md-3">
-                        <div class="text-muted small">Plan Expiry</div>
-                        <div class="fs-6">{% if active_plan and active_plan.end_date %}
-                            {{ active_plan.end_date|date:"Y-m-d" }}{% else %}—{% endif %}</div>
+                </div>
+                <div class="col-12 col-md-3">
+                    <div class="text-muted small">Plan Expiry</div>
+                    <div class="fs-6 text-dark fw-semibold">{% if active_plan and active_plan.end_date %}
+                        {{ active_plan.end_date|date:"Y-m-d" }}{% else %}—{% endif %}</div>
+                </div>
+                <div class="col-12 col-md-3">
+                    <div class="text-muted small">Usage Limits</div>
+                    <div class="small text-dark">
+                        Suppliers: {{ usage_limits.suppliers|default:"∞" }}
+                        &nbsp;•&nbsp; Users: {{ usage_limits.users|default:"∞" }}
                     </div>
-                    <div class="col-12 col-md-6">
-                        <div class="text-muted small">Usage Limits</div>
-                        <div class="small">
-                            Suppliers: {% if usage_limits.suppliers %}{{ usage_limits.suppliers }}{% else %}∞{% endif %}
-                            &nbsp;•&nbsp; Users:
-                            {% if usage_limits.users %}{{ usage_limits.users }}{% else %}∞{% endif %}
-                        </div>
+                </div>
+                <div class="col-12 col-md-3">
+
+                    <div class="text-muted small fw-semibold mb-1">Usage Stats</div>
+                    <div class="small text-dark">
+                        Suppliers: <span class="fw-semibold">{{ usage_used.suppliers|default:0 }}</span>
+                        &nbsp;•&nbsp;
+                        Users: <span class="fw-semibold">{{ usage_used.users|default:0 }}</span>
                     </div>
                 </div>
             </div>
         </div>
 
         <!-- Quick stats -->
-        <div class="row g-3 mb-3">
+        <div class="row g-3 mt-2 mb-4">
             <div class="col-12 col-md-3">
                 <div class="card h-100">
                     <div class="card-body">
@@ -127,7 +135,11 @@
                     <a class="btn btn-primary" href="{% url 'tenants:new_supplier' %}">Create Supplier</a>
                     <a class="btn btn-outline-primary" href="{% url 'activities:list' %}">View Activities</a>
                     <a class="btn btn-outline-primary" href="{% url 'tickets:new' %}">New Ticket</a>
-                    <a class="btn btn-outline-secondary" href="{% url 'preferences:index' %}">Evaluator Settings</a>
+                    <a class="btn btn-outline-primary" href="{% url 'preferences:index' %}">Evaluator Settings</a>
+                    {% if request.user.role == 'EAD' %}
+                        <a class="btn btn-outline-primary" href="{% url 'tenants:new_evaluator_user' %}">Create EVS
+                            User</a>
+                    {% endif %}
                 </div>
             </div>
         </div>

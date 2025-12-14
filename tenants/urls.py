@@ -15,4 +15,5 @@ urlpatterns += [
     path("suppliers/<int:pk>/edit/", views.supplier_edit, name="supplier_edit"),
     path("suppliers/<int:pk>/rules/upload/", views.rules_upload, name="rules_upload"),
     path("suppliers/", views.suppliers_list, name="suppliers_list"),
+    path("evaluators/toggle-active/", views.evaluator_toggle_active, name="evaluator_toggle_active"),
 ]

@@ -5,6 +5,30 @@
     <div class="page-body">
         <div class="card card-form">
             <div class="card-body">
+                <style>
+                  /* Even layout for dynamic Django forms */
+                  .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+                  .form-grid > .mb-3 { margin-bottom: 0 !important; }
+                  .form-grid .form-label { font-weight: 600; font-size: .92rem; margin-bottom: 6px; }
+                  .form-grid input[type="text"],
+                  .form-grid input[type="number"],
+                  .form-grid input[type="date"],
+                  .form-grid input[type="email"],
+                  .form-grid select,
+                  .form-grid textarea { width: 100%; }
+                  /* Keep help and error text visually tidy */
+                  .form-text { font-size: .8rem; color: #6b7280; }
+                  .invalid-feedback.d-block { font-size: .8rem; }
+                  /* Readonly end-date visual */
+                  .readonly-field { background: #f3f4f6; color: #6b7280; cursor: not-allowed; }
+                  input[type="date"] { line-height: 1.2; }
+                  /* Field highlight on focus / value */
+                  .form-highlight{padding:6px;border-radius:10px;transition:background .15s ease, box-shadow .15s ease}
+                  .form-highlight .form-label{transition:color .15s ease}
+                  .form-highlight:focus-within{background:#f3f8ff;box-shadow:0 0 0 3px rgba(37,99,235,.15)}
+                  .form-highlight:focus-within .form-label{color:#2563eb}
+                  .form-highlight.has-value .form-label{color:#111827;font-weight:600}
+                </style>
                 <h5 class="mb-3">Create Payment Record</h5>
 
                 {% if form.non_field_errors %}
@@ -15,25 +39,48 @@
 
                 <form method="post" novalidate>
                     {% csrf_token %}
-                    {% for field in form.visible_fields %}
-                        <div class="mb-3">
-                            <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
-                            {{ field }}
-                            {% if field.help_text %}
-                                <div class="form-text">{{ field.help_text }}</div>
-                            {% endif %}
-                            {% for e in field.errors %}
-                                <div class="invalid-feedback d-block">{{ e }}</div>
-                            {% endfor %}
+                    <div class="form-grid">
+                      {% for field in form.visible_fields %}
+                        <div class="mb-3 form-highlight">
+                          <label class="form-label" for="{{ field.id_for_label }}">
+                            {{ field.label }}{% if field.field.required %} <span style="color:#dc2626">*</span>{% endif %}
+                          </label>
+                          {{ field }}
+                          {% if field.help_text %}
+                            <div class="form-text">{{ field.help_text }}</div>
+                          {% endif %}
+                          {% for e in field.errors %}
+                            <div class="invalid-feedback d-block">{{ e }}</div>
+                          {% endfor %}
                         </div>
-                    {% endfor %}
-
+                      {% endfor %}
+                    </div>
                     <div class="d-flex gap-2">
                         <button class="btn btn-primary" type="submit">Save</button>
                         <a class="btn btn-outline-secondary" href="{% url 'payments:list' %}">Cancel</a>
                     </div>
                 </form>
 
+            <script>
+              (function(){
+                var form = document.currentScript.closest('form') || document.querySelector('form');
+                if(!form) return;
+                var fields = form.querySelectorAll('input, select, textarea');
+                fields.forEach(function(el){
+                  var box = el.closest('.form-highlight');
+                  if(!box) return;
+                  function sync(){
+                    if((el.value||'').trim()!=='') box.classList.add('has-value');
+                    else box.classList.remove('has-value');
+                  }
+                  el.addEventListener('focus', function(){ box.classList.add('is-focus'); });
+                  el.addEventListener('blur', function(){ box.classList.remove('is-focus'); sync(); });
+                  el.addEventListener('input', sync);
+                  el.addEventListener('change', sync);
+                  sync();
+                });
+              })();
+            </script>
             <script>
               (function () {
                 // Try common ids/names from Django forms
@@ -45,7 +92,11 @@
                   if (!opt) return '';
                   // Prefer data attribute if present
                   var dataPrice = opt.getAttribute('data-price');
-                  if (dataPrice) return dataPrice;
+                  if (dataPrice) {
+                    // Ensure we return a clean numeric string even if the attribute contains symbols like "$" or commas
+                    var clean = String(dataPrice).replace(/[^\d.]/g, '');
+                    return clean;
+                  }
                   // Fallback: parse price from option text e.g. "Enterprise ($9,999/yr)"
                   var txt = (opt.textContent || '').replace(/\s+/g, ' ');
                   var match = txt.match(/\$([\d,]+(?:\.\d{1,2})?)/);
@@ -69,6 +120,23 @@
                 // Auto-fill end date based on start date + 1 year
                 var startDateEl = document.querySelector('#id_start_date');
                 var endDateEl = document.querySelector('#id_end_date');
+
+                // Enforce native date picker for Start Date (fallback-safe)
+                if (startDateEl) {
+                  try { startDateEl.setAttribute('type', 'date'); } catch(e) {}
+                  startDateEl.setAttribute('inputmode', 'none');
+                  startDateEl.setAttribute('autocomplete', 'off');
+                }
+
+                // Make End Date read-only (not disabled, so it will submit)
+                if (endDateEl) {
+                  endDateEl.readOnly = true;
+                  endDateEl.classList.add('readonly-field');
+                  endDateEl.setAttribute('aria-readonly', 'true');
+                  endDateEl.setAttribute('title', 'End date is calculated automatically');
+                  endDateEl.addEventListener('keydown', function(ev){ ev.preventDefault(); });
+                  endDateEl.addEventListener('beforeinput', function(ev){ ev.preventDefault(); });
+                }
 
                 function pad(n) {
                   return n < 10 ? '0' + n : n;

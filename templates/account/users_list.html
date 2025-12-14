@@ -25,6 +25,9 @@
           border-top-left-radius: 1rem;
           border-top-right-radius: 1rem;
         }
+        /* Role-based card header backgrounds */
+        .user-card .header.lad { background: linear-gradient(135deg, #16a34a, #22c55e); }
+        .user-card .header.lus { background: linear-gradient(135deg, #2563eb, #3b82f6); }
         .user-card .avatar {
           width: 96px;
           height: 96px;
@@ -73,11 +76,6 @@
           --_bg: var(--bs-primary-bg-subtle);
           --_text: var(--bs-primary-text-emphasis);
           --_border: var(--bs-primary-border-subtle);
-        }
-        .user-card .role-badge.sus{
-          --_bg: var(--bs-warning-bg-subtle);
-          --_text: var(--bs-warning-text-emphasis);
-          --_border: var(--bs-warning-border-subtle);
         }
         .user-card .socials {
           display: flex;
@@ -201,7 +199,7 @@
         {% for u in page_obj %}
           <div class="col-12 col-sm-6 col-md-4 col-xl-3">
             <div class="user-card shadow-sm">
-              <div class="header position-relative">
+              <div class="header position-relative {{ u.role|lower }}">
                 {% if u.profile_photo %}
                   <img src="{{ u.profile_photo.url }}" alt="{{ u.get_full_name|default:u.email }}" class="avatar shadow-sm">
                 {% else %}

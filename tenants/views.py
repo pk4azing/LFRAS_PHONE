@@ -98,13 +98,6 @@ def new_evaluator(request):
             evaluator_id=evaluator.id,
             metadata={"poc_email": evaluator.poc_email, "plan": evaluator.plan},
         )
-        notify(
-            ead_user,
-            title="Your Evaluator admin account is ready",
-            body=f"Evaluator: {evaluator.name}. Please verify email and change your password.",
-            level=Level.SUCCESS,
-            link_url="/auth/login/",
-        )
         messages.success(
             request, f"Evaluator '{evaluator.name}' created. POC user: {ead_user.email}"
         )
@@ -123,7 +116,28 @@ def new_supplier(request):
         id=request.user.evaluator_id
     )
     if request.method == "POST" and form.is_valid():
-        supplier = form.save()
+        # Ensure unique subdomain per evaluator
+        subdomain = form.cleaned_data.get("subdomain", "").strip()
+        evaluator = request.user.evaluator
+
+        # Auto-generate subdomain if empty or duplicate
+        from django.utils.text import slugify
+        import uuid
+
+        if not subdomain:
+            subdomain = slugify(form.cleaned_data.get("name", "supplier")) or "supplier"
+
+        # Check for duplicate subdomain under same evaluator
+        base_subdomain = subdomain
+        counter = 1
+        while Supplier.objects.filter(evaluator=evaluator, subdomain=subdomain).exists():
+            subdomain = f"{base_subdomain}-{uuid.uuid4().hex[:5]}"
+
+        # Assign it back to the form instance before saving
+        supplier = form.save(commit=False)
+        supplier.subdomain = subdomain
+        supplier.save()
+
         sus = create_sus_for_supplier(supplier)
         log_event(
             request=request,
@@ -165,10 +179,25 @@ def new_evaluator_user(request):
     form.fields["evaluator"].queryset = Evaluator.objects.filter(
         id=request.user.evaluator_id
     )
+    # Limit assignable roles for EAD to only EAD/EVS server‑side
+    if "role" in form.fields:
+        form.fields["role"].choices = [
+            (val, label)
+            for (val, label) in form.fields["role"].choices
+            if val in (Roles.EAD, Roles.EVS)
+        ]
     if request.method == "POST" and form.is_valid():
         evaluator = form.cleaned_data["evaluator"]
         email = form.cleaned_data["email"].lower().strip()
         role = form.cleaned_data["role"]
+        # Enforce scope: EAD can only create users (EAD/EVS) under their own evaluator
+        if evaluator.id != request.user.evaluator_id:
+            messages.error(request, "You can only create users for your evaluator.")
+            return redirect("router:ead")
+
+        if role not in (Roles.EAD, Roles.EVS):
+            messages.error(request, "Invalid role. You can only create EAD or EVS users.")
+            return redirect("router:ead")
         profile = {
             "first_name": form.cleaned_data.get("first_name", ""),
             "last_name": form.cleaned_data.get("last_name", ""),
@@ -354,7 +383,7 @@ def supplier_edit(request, pk: int):
             form.save()
             messages.success(request, "Supplier details updated.")
             # Go to a detail page if you have it; otherwise back to list
-            return redirect("tenants:suppliers_detail", pk=supplier.pk) if \
+            return redirect("tenants:supplier_detail", pk=supplier.pk) if \
                 "tenants:suppliers_detail" in request.resolver_match.namespace or True else \
                 redirect("tenants:suppliers_list")
     else:
@@ -362,3 +391,48 @@ def supplier_edit(request, pk: int):
 
     ctx = {"form": form, "supplier": supplier}
     return render(request, "tenants/supplier_edit.html", ctx)
+
+
+@login_required
+@user_passes_test(is_LAD)
+def evaluator_toggle_active(request):
+    if request.method != "POST":
+        return redirect("tenants:evaluator_detail")
+
+    ev_id = request.POST.get("evaluator_id")
+    action = (request.POST.get("action") or "").lower()
+    reason = (request.POST.get("reason") or "").strip()
+
+    if not ev_id or action not in {"activate", "deactivate"} or len(reason) < 3:
+        messages.error(request, "Invalid request. Please provide a valid reason.")
+        return redirect("tenants:evaluator_detail")
+
+    ev = get_object_or_404(Evaluator, pk=ev_id)
+    new_state = (action == "activate")
+    if (ev.is_active if hasattr(ev, "is_active") else getattr(ev, "active", False)) == new_state:
+        messages.info(request, f"Evaluator '{ev.name}' is already {action}d.")
+        return redirect("tenants:evaluator_detail")
+
+    # Flip the flag (support either field name)
+    if hasattr(ev, "is_active"):
+        ev.is_active = new_state
+    else:
+        ev.active = new_state
+    ev.save(update_fields=["is_active"] if hasattr(ev, "is_active") else ["active"])
+
+    # Optional: audit log
+    try:
+        log_event(
+            request=request,
+            actor=request.user,
+            verb="activated" if new_state else "deactivated",
+            action="evaluator.toggle_active",
+            target=ev,
+            evaluator_id=ev.id,
+            metadata={"reason": reason},
+        )
+    except Exception:
+        pass
+
+    messages.success(request, f"Evaluator '{ev.name}' has been {action}d.")
+    return redirect("tenants:evaluator_detail")

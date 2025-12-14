@@ -4,8 +4,8 @@
          style="position:fixed;inset:0;background:rgba(39,50,71,.25);display:none;z-index:1039;"></div>
     <div class="lc-sidebar-head d-flex align-items-center justify-content-between px-3" style="height:56px;">
         <a href="{% url 'router:dashboard' %}" class="navbar-brand d-flex align-items-center gap-2 text-decoration-none">
-            <img class="img-fluid" src="{% static 'assets/images/logo/logo_light.png' %}" alt="Lucid" style="height:28px;">
-            <span class="fw-bold">Lucid</span>
+            <img class="img-fluid" src="{% static 'assets/images/logo/logo_light.png' %}" alt="Logo" style="height:28px;">
+            <span class="fw-bold">XXXX</span>
         </a>
         <button type="button" class="btn btn-sm btn-outline-secondary d-md-none" id="lcSidebarClose" aria-label="Close">
             ✕
@@ -88,6 +88,14 @@
                         <span>Documents</span>
                     </a>
                 </li>
+                {% if request.user.role == 'EAD' %}
+                <li class="nav-item">
+                    <a class="nav-link d-flex align-items-center gap-2" href="{% url 'tenants:new_evaluator_user' %}">
+                        <i data-feather="user-plus" class="opacity-75"></i>
+                        <span>Create Evaluator User</span>
+                    </a>
+                </li>
+                {% endif %}
                 <li class="nav-item">
                     <a class="nav-link d-flex align-items-center gap-2" href="{% url 'preferences:index' %}">
                         <i data-feather="settings" class="opacity-75"></i>

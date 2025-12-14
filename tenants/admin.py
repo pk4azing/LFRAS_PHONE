@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Evaluator, Supplier, PaymentTransaction, EmailOTP
+from .models import Evaluator, Supplier, PaymentTransaction
 
 
 @admin.register(PaymentTransaction)
@@ -29,7 +29,3 @@ class SupplierAdmin(admin.ModelAdmin):
     search_fields = ("name", "primary_email")
 
 
-@admin.register(EmailOTP)
-class EmailOTPAdmin(admin.ModelAdmin):
-    list_display = ("email", "code", "expires_at", "attempts", "created_at")
-    search_fields = ("email", "code")

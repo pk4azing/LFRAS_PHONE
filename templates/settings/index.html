@@ -1,5 +1,5 @@
-<!-- templates/settings/index.html -->
 {% extends "base.html" %}
+{% load form_extras %}
 {% block title %}{{ title }}{% endblock %}
 
 {% block content %}
@@ -9,33 +9,47 @@
                 <h5 class="mb-0">{{ title }}</h5>
             </div>
             <div class="card-body">
-                <form method="post">
+                <form method="post" class="needs-validation" novalidate>
                     {% csrf_token %}
+
                     {% if scope == "site" %}
-                        <div class="mb-3">
-                            <label class="form-label">Default From Email</label>
-                            {{ form.email_from }}
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold text-dark">Default From Email</label>
+                            {{ form.email_from|add_class:"form-control" }}
                         </div>
-                        <div class="mb-3">
-                            <label class="form-label">Support Email</label>
-                            {{ form.support_email }}
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold text-dark">Support Email</label>
+                            {{ form.support_email|add_class:"form-control" }}
                         </div>
-                        <div class="mb-3">
-                            <label class="form-label">S3 Base Prefix</label>
-                            {{ form.s3_base_prefix }}
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold text-dark">S3 Base Prefix</label>
+                            {{ form.s3_base_prefix|add_class:"form-control" }}
                             <div class="form-text">Example: <code>lucid/</code></div>
                         </div>
-                        <div class="mb-3">
-                            <label class="form-label">Expiry reminder days (CSV)</label>
-                            {{ form.expiry_schedule }}
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold text-dark">Expiry Reminder Days (CSV)</label>
+                            {{ form.expiry_schedule|add_class:"form-control" }}
                             <div class="form-text">Comma-separated. Example: <code>30,14,7,1</code></div>
                         </div>
+                    </div>
                     {% else %}
-                        {{ form.as_p }}
+                    <div class="row g-3">
+                        {% for field in form.visible_fields %}
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold text-dark" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                            {{ field|add_class:"form-control" }}
+                            {% for error in field.errors %}
+                                <div class="invalid-feedback d-block">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        {% endfor %}
+                    </div>
                     {% endif %}
-                    <div class="d-flex gap-2">
-                        <button class="btn btn-primary">Save</button>
-                        <a class="btn btn-outline-secondary" href="{% url 'router:role_redirect' %}">Back</a>
+
+                    <div class="d-flex justify-content-end gap-3 mt-4">
+                        <button class="btn btn-success px-4"><i data-feather="save" class="me-1"></i> Save</button>
+                        <a class="btn btn-outline-secondary px-4" href="{% url 'router:role_redirect' %}"><i data-feather="arrow-left" class="me-1"></i> Back</a>
                     </div>
                 </form>
             </div>

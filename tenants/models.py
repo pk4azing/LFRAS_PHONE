@@ -156,22 +156,3 @@ class SupplierValidationRule(models.Model):
 
     def __str__(self):
         return f"{self.expected_name} ({'required' if self.is_required else 'optional'}) for {self.supplier.name}"
-
-
-class EmailOTP(models.Model):
-    email = models.EmailField()
-    code = models.CharField(max_length=8)
-    expires_at = models.DateTimeField()
-    attempts = models.PositiveIntegerField(default=0)
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    @staticmethod
-    def generate_code(length=6):
-        alphabet = string.digits
-        return "".join(secrets.choice(alphabet) for _ in range(length))
-
-    def is_valid(self):
-        return timezone.now() < self.expires_at and self.attempts < 5
-
-    def __str__(self):
-        return f"{self.email} - {self.code}"

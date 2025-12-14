@@ -61,6 +61,11 @@
                     <a class="btn btn-outline-primary" href="{% url 'documents:list' %}?scope=mine">My Documents</a>
                     <a class="btn btn-outline-secondary" href="{% url 'tickets:new' %}">New Ticket</a>
                     <a class="btn btn-outline-secondary" href="{% url 'preferences:index' %}">Settings</a>
+                    {% if request.user.role == 'EAD' %}
+                    <a class="btn btn-success" href="{% url 'accounts:create_evaluator_user' %}">
+                        <i data-feather="user-plus" class="me-1"></i> Create EVS User
+                    </a>
+                    {% endif %}
                 </div>
             </div>
         </div>

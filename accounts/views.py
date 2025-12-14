@@ -1,6 +1,7 @@
 from django.contrib.auth.views import LoginView, PasswordChangeView
 from django.urls import reverse_lazy
 from django.contrib.auth import logout
+from django.contrib.auth import update_session_auth_hash
 
 from django.views.generic import FormView, View
 from django.shortcuts import redirect, render, get_object_or_404
@@ -20,20 +21,39 @@ from .forms import (
 from .models import User
 from django.conf import settings
 from django.core.mail import send_mail
-from tenants.models import EmailOTP
 from tenants.services import send_otp
 
 # Audit & notifications
 from auditlog.services import log_event
 from notifications.services import notify
 from notifications.models import Level
-
+from .models import EmailOtp
+from django.utils import timezone
 
 class LoginViewCustom(LoginView):
     authentication_form = EmailAuthenticationForm
     template_name = "auth/login.html"
     redirect_authenticated_user = True
     success_url = reverse_lazy("router:role_redirect")
+
+    def get_success_url(self):
+        u: User = self.request.user
+        # 1) If password change is required, do that first
+        if getattr(u, "must_change_password", False):
+            return reverse_lazy("accounts:force_password_change")
+
+        # 2) If email not verified, send OTP and redirect to verify page
+        if not getattr(u, "email_verified", False):
+            try:
+                send_otp(u.email)
+                messages.info(self.request, "We sent a 6-digit code to your email.")
+            except Exception:
+                # soft-fail: still take them to verify page so they can request resend
+                pass
+            return reverse_lazy("accounts:verify_email")
+
+        # 3) Otherwise, go to the role-based dashboard
+        return super().get_success_url()
 
 
 @login_required
@@ -50,7 +70,7 @@ class OTPForm(forms.Form):
 
 
 class VerifyEmailView(FormView):
-    template_name = "auth/verify_email.html"
+    template_name = "account/verify_email.html"
     form_class = OTPForm
     success_url = reverse_lazy("router:role_redirect")
 
@@ -66,26 +86,29 @@ class VerifyEmailView(FormView):
         code = form.cleaned_data["code"].strip()
 
         # Get most recent OTP for this email
-        otp = EmailOTP.objects.filter(email=user.email).order_by("-created_at").first()
+        otp = EmailOtp.objects.filter(email=user.email).order_by("-created_at").first()
         if not otp:
             messages.error(self.request, "No OTP found. Please request a new code.")
             return redirect("accounts:resend_otp")
 
-        if not otp.is_valid():
-            messages.error(
-                self.request, "OTP expired or too many attempts. Request a new code."
-            )
+        if getattr(otp, "expires_at", None) and timezone.now() > otp.expires_at:
+            messages.error(self.request, "OTP expired. Request a new code.")
             return redirect("accounts:resend_otp")
 
         if code != otp.code:
-            otp.attempts += 1
-            otp.save(update_fields=["attempts"])
+            if hasattr(otp, "attempts"):
+                otp.attempts += 1
+                otp.save(update_fields=["attempts"])
             messages.error(self.request, "Invalid code. Please try again.")
             return self.form_invalid(form)
 
         # Success — mark verified
         user.email_verified = True
         user.save(update_fields=["email_verified"])
+
+        if getattr(user, "must_change_password", False):
+            messages.success(self.request, "Email verified! Please set a new password to continue.")
+            return redirect("accounts:force_password_change")
 
         # Audit + notify (in‑app)
         log_event(
@@ -125,43 +148,40 @@ class ResendOTPView(View):
 
 class ForcePasswordChangeView(PasswordChangeView):
     template_name = "auth/force_password_change.html"
-    success_url = reverse_lazy("router:role_redirect")
+    form_class = PasswordChangeSimpleForm
 
     def dispatch(self, request, *args, **kwargs):
         if not request.user.is_authenticated:
             return redirect("accounts:login")
-        if not request.user.email_verified:
-            messages.warning(request, "Please verify your email first.")
-            return redirect("accounts:verify_email")
+
+        # If password change not required, go straight to dashboard
+        if not getattr(request.user, "must_change_password", False):
+            return redirect("router:role_redirect")
+
         return super().dispatch(request, *args, **kwargs)
 
     def form_valid(self, form):
-        resp = super().form_valid(form)
-
         user: User = self.request.user
-        if user.must_change_password:
-            user.must_change_password = False
-            user.save(update_fields=["must_change_password"])
+        form.save()
 
-        # Audit + notify (in‑app)
-        log_event(
-            request=self.request,
-            actor=user,
-            verb="password_changed",
-            action="auth.force_password_change",
-            target=user,
-        )
+        # Clear flag
+        user.must_change_password = False
+        user.save(update_fields=["must_change_password"])
 
-        notify(
-            user,
-            title="Password updated",
-            body="Your password has been changed.",
-            level=Level.SUCCESS,
-            email=False,
-        )
+        # Stay logged in
+        update_session_auth_hash(self.request, user)
+
+        # Redirect logic
+        if not user.email_verified:
+            messages.success(self.request, "Password updated! Please verify your email.")
+            return redirect("accounts:verify_email")
 
         messages.success(self.request, "Password updated successfully.")
-        return resp
+        return redirect("router:role_redirect")
+
+    def get_success_url(self):
+        # Safety fallback in case Django uses default success redirect
+        return reverse_lazy("router:role_redirect")
 
 
 @login_required
@@ -338,3 +358,45 @@ def user_toggle_active(request, pk: int):
     user.save(update_fields=["is_active"])
     messages.success(request, f"{'Activated' if user.is_active else 'Deactivated'} {user.email}.")
     return redirect("accounts:staff")
+
+
+from django.contrib.auth import login
+
+@login_required
+def verify_email(request):
+    if request.method == "POST":
+        email = request.POST.get("email","").strip().lower()
+        code = request.POST.get("code","").strip()
+        try:
+            otp = EmailOtp.objects.get(email=email, code=code)
+        except EmailOtp.DoesNotExist:
+            messages.error(request, "Invalid code or email.")
+            return redirect("accounts:verify_email")
+
+        if otp.expires_at and timezone.now() > otp.expires_at:
+            messages.error(request, "Code expired. Please request a new one.")
+            return redirect("accounts:verify_email")
+
+        # Mark verified
+        otp.verified_at = timezone.now()
+        otp.save(update_fields=["verified_at"])
+
+        # Mark user email_verified and login
+        try:
+            user = User.objects.get(email=email)
+            user.email_verified = True
+            user.save(update_fields=["email_verified"])
+            login(request, user)   # Django login
+
+            # If this is a first-time login requiring password change, redirect there
+            if getattr(user, "must_change_password", False):
+                messages.success(request, "Email verified! Please set a new password to continue.")
+                return redirect("accounts:force_password_change")
+
+            # Otherwise go to the appropriate dashboard
+            return redirect(user.redirect_path)
+        except User.DoesNotExist:
+            messages.success(request, "Email verified! Please log in.")
+            return redirect("accounts:login")
+
+    return render(request, "account/verify_email.html")

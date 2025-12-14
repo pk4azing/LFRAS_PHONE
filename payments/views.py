@@ -10,6 +10,13 @@ from .models import PaymentRecord, PaymentTransaction, PLAN_DEFAULT_AMOUNTS
 from .forms import PaymentRecordForm, PaymentTransactionForm
 from .services import can_manage_payments, can_view_payments
 
+from django.conf import settings
+
+try:
+    import requests  # for Slack webhook
+except Exception:  # very defensive fallback
+    requests = None
+
 
 @login_required
 def list_payments(request):
@@ -162,6 +169,33 @@ def create_transaction(request):
             trx = form.save(commit=False)
             trx.created_by = request.user
             trx.save()
+
+            # Slack notification (optional via Incoming Webhook)
+            try:
+                webhook = getattr(settings, "SLACK_WEBHOOK_URL", None)
+                if webhook and requests is not None:
+                    rec = trx.record
+                    who = getattr(request.user, "email", str(request.user))
+                    amt = f"{trx.amount:.2f} {getattr(trx, 'currency', 'USD').upper()}"
+                    status = getattr(trx, "status", getattr(trx, "state", "recorded"))
+                    tx_ref = getattr(trx, "reference", "—")
+                    eval_name = getattr(rec.evaluator, "name", "(evaluator)")
+                    detail_url = f"/payments/{rec.pk}/?tab=tx"
+                    text = (
+                        f":money_with_wings: *New Transaction*\n"
+                        f"Evaluator: *{eval_name}*\n"
+                        f"Amount: *{amt}*\n"
+                        f"Status: *{status}*\n"
+                        f"Txn ID: `{tx_ref}`\n"
+                        f"By: {who}\n"
+                        f"<{detail_url}|View in dashboard>"
+                    )
+                    try:
+                        requests.post(webhook, json={"text": text}, timeout=5)
+                    except Exception:
+                        pass
+            except Exception:
+                pass
 
             # If payment covers the yearly amount, activate the record
             rec = trx.record

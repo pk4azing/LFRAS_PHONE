@@ -25,7 +25,15 @@
                         </div>
 
                         <div class="card-body">
-                            <form method="post" novalidate>
+                            <style>
+                              /* Highlight containers */
+                              .form-highlight{padding:4px;border-radius:8px;transition:background .15s ease, box-shadow .15s ease}
+                              .form-highlight:focus-within{background:#f3f8ff;box-shadow:0 0 0 3px rgba(37,99,235,.15)}
+                              .form-highlight .form-label{transition:color .15s ease}
+                              .form-highlight:focus-within .form-label{color:#2563eb}
+                              .form-highlight.has-value .form-label{color:#111827;font-weight:600}
+                            </style>
+                            <form method="post">
                                 {% csrf_token %}
 
                                 <!-- Company -->
@@ -34,23 +42,24 @@
                                         <h6 class="border-bottom pb-2">Company</h6>
                                     </div>
 
-                                    <div class="col-md-6">
-                                        <label class="form-label">Company Name</label>
-                                        <input type="text" name="{{ form.name.name }}"
+                                    <div class="col-md-6 form-highlight">
+                                        <label class="form-label">Company Name <span style="color:#dc2626">*</span></label>
+                                        <input type="text" name="{{ form.name.name }}" required minlength="2" maxlength="80" pattern="^[A-Za-z0-9][A-Za-z0-9 &'\-\.]{1,79}$" autocomplete="organization"
                                                value="{{ form.name.value|default_if_none:'' }}"
                                                class="form-control{% if form.name.errors %} is-invalid{% endif %}"
                                                placeholder="Acme, Inc.">
                                         {% if form.name.help_text %}
                                             <div class="form-text">{{ form.name.help_text }}</div>{% endif %}
+                                        <div class="invalid-feedback">2–80 chars. Letters, numbers, spaces, & ' - .</div>
                                         {% for e in form.name.errors %}
                                             <div class="invalid-feedback">{{ e }}</div>{% endfor %}
                                     </div>
 
-                                    <div class="col-md-6">
+                                    <div class="col-md-6 form-highlight">
                                         <label class="form-label">Website</label>
                                         <div class="input-group">
                                             <span class="input-group-text">https://</span>
-                                            <input type="text" name="{{ form.website.name }}"
+                                            <input type="text" name="{{ form.website.name }}" pattern="^[A-Za-z0-9][A-Za-z0-9\-.]{2,100}$"
                                                    value="{{ form.website.value|default_if_none:'' }}"
                                                    class="form-control{% if form.website.errors %} is-invalid{% endif %}"
                                                    placeholder="acme.com">
@@ -59,30 +68,32 @@
                                             <div class="invalid-feedback d-block">{{ e }}</div>{% endfor %}
                                     </div>
 
-                                    <div class="col-md-6">
-                                        <label class="form-label">Email Domain</label>
+                                    <div class="col-md-6 form-highlight">
+                                        <label class="form-label">Email Domain <span style="color:#dc2626">*</span></label>
                                         <div class="input-group">
                                             <span class="input-group-text">@</span>
-                                            <input type="text" name="{{ form.email_domain.name }}"
+                                            <input type="text" name="{{ form.email_domain.name }}" required pattern="^[A-Za-z0-9][A-Za-z0-9\-\.]{1,62}\.[A-Za-z]{2,}$" inputmode="url"
                                                    value="{{ form.email_domain.value|default_if_none:'' }}"
                                                    class="form-control{% if form.email_domain.errors %} is-invalid{% endif %}"
                                                    placeholder="acme.com">
                                         </div>
                                         <div class="form-text">Employees must use this domain.</div>
+                                        <div class="invalid-feedback d-block">Enter a domain like acme.com</div>
                                         {% for e in form.email_domain.errors %}
                                             <div class="invalid-feedback d-block">{{ e }}</div>{% endfor %}
                                     </div>
 
-                                    <div class="col-md-6">
-                                        <label class="form-label">Subdomain</label>
+                                    <div class="col-md-6 form-highlight">
+                                        <label class="form-label">Subdomain <span style="color:#dc2626">*</span></label>
                                         <div class="input-group">
-                                            <input type="text" id="id_subdomain" name="{{ form.subdomain.name }}"
+                                            <input type="text" id="id_subdomain" name="{{ form.subdomain.name }}" required pattern="^(?!-)[a-z0-9-]{3,30}(?<!-)$" minlength="3" maxlength="30" inputmode="verbatim"
                                                    value="{{ form.subdomain.value|default_if_none:'' }}"
                                                    class="form-control{% if form.subdomain.errors %} is-invalid{% endif %}"
                                                    placeholder="acme">
                                             <span class="input-group-text">.lucidcompliances.com</span>
                                         </div>
                                         <div class="form-text">Used for evaluator user invitations.</div>
+                                        <div class="invalid-feedback d-block">3–30 lowercase letters, numbers or hyphens. No leading/trailing hyphen.</div>
                                         {% for e in form.subdomain.errors %}
                                             <div class="invalid-feedback d-block">{{ e }}</div>{% endfor %}
                                     </div>
@@ -94,45 +105,45 @@
                                         <h6 class="border-bottom pb-2">Address</h6>
                                     </div>
 
-                                    <div class="col-md-7">
+                                    <div class="col-md-7 form-highlight">
                                         <label class="form-label">Address line 1</label>
-                                        <input type="text" name="{{ form.address_line1.name }}"
+                                        <input type="text" name="{{ form.address_line1.name }}" maxlength="120"
                                                value="{{ form.address_line1.value|default_if_none:'' }}"
                                                class="form-control{% if form.address_line1.errors %} is-invalid{% endif %}">
                                         {% for e in form.address_line1.errors %}
                                             <div class="invalid-feedback">{{ e }}</div>{% endfor %}
                                     </div>
 
-                                    <div class="col-md-5">
+                                    <div class="col-md-5 form-highlight">
                                         <label class="form-label">Address line 2</label>
-                                        <input type="text" name="{{ form.address_line2.name }}"
+                                        <input type="text" name="{{ form.address_line2.name }}" maxlength="120"
                                                value="{{ form.address_line2.value|default_if_none:'' }}"
                                                class="form-control{% if form.address_line2.errors %} is-invalid{% endif %}">
                                         {% for e in form.address_line2.errors %}
                                             <div class="invalid-feedback">{{ e }}</div>{% endfor %}
                                     </div>
 
-                                    <div class="col-md-4">
+                                    <div class="col-md-4 form-highlight">
                                         <label class="form-label">City</label>
-                                        <input type="text" name="{{ form.city.name }}"
+                                        <input type="text" name="{{ form.city.name }}" maxlength="64" pattern="^[A-Za-z0-9][A-Za-z0-9 .,'\-]{0,63}$"
                                                value="{{ form.city.value|default_if_none:'' }}"
                                                class="form-control{% if form.city.errors %} is-invalid{% endif %}">
                                         {% for e in form.city.errors %}
                                             <div class="invalid-feedback">{{ e }}</div>{% endfor %}
                                     </div>
 
-                                    <div class="col-md-4">
+                                    <div class="col-md-4 form-highlight">
                                         <label class="form-label">State</label>
-                                        <input type="text" name="{{ form.state.name }}"
+                                        <input type="text" name="{{ form.state.name }}" maxlength="64" pattern="^[A-Za-z0-9][A-Za-z0-9 .,'\-]{0,63}$"
                                                value="{{ form.state.value|default_if_none:'' }}"
                                                class="form-control{% if form.state.errors %} is-invalid{% endif %}">
                                         {% for e in form.state.errors %}
                                             <div class="invalid-feedback">{{ e }}</div>{% endfor %}
                                     </div>
 
-                                    <div class="col-md-4">
+                                    <div class="col-md-4 form-highlight">
                                         <label class="form-label">ZIP</label>
-                                        <input type="text" name="{{ form.postal_code.name }}"
+                                        <input type="text" name="{{ form.postal_code.name }}" pattern="^\\d{4,10}$" inputmode="numeric" maxlength="10"
                                                value="{{ form.postal_code.value|default_if_none:'' }}"
                                                class="form-control{% if form.postal_code.errors %} is-invalid{% endif %}">
                                         {% for e in form.postal_code.errors %}
@@ -146,9 +157,9 @@
                                         <h6 class="border-bottom pb-2">Point of Contact (POC)</h6>
                                     </div>
 
-                                    <div class="col-md-6">
-                                        <label class="form-label">POC Name</label>
-                                        <input type="text" name="{{ form.poc_name.name }}"
+                                    <div class="col-md-6 form-highlight">
+                                        <label class="form-label">POC Name <span style="color:#dc2626">*</span></label>
+                                        <input type="text" name="{{ form.poc_name.name }}" required minlength="2" maxlength="60" pattern="^[A-Za-z][A-Za-z'\- ]{1,59}$" autocomplete="name"
                                                value="{{ form.poc_name.value|default_if_none:'' }}"
                                                class="form-control{% if form.poc_name.errors %} is-invalid{% endif %}"
                                                placeholder="Jane Doe">
@@ -156,9 +167,9 @@
                                             <div class="invalid-feedback">{{ e }}</div>{% endfor %}
                                     </div>
 
-                                    <div class="col-md-6">
-                                        <label class="form-label">POC Email</label>
-                                        <input type="email" name="{{ form.poc_email.name }}"
+                                    <div class="col-md-6 form-highlight">
+                                        <label class="form-label">POC Email <span style="color:#dc2626">*</span></label>
+                                        <input type="email" name="{{ form.poc_email.name }}" required autocomplete="email"
                                                value="{{ form.poc_email.value|default_if_none:'' }}"
                                                class="form-control{% if form.poc_email.errors %} is-invalid{% endif %}"
                                                placeholder="jane@acme.com">
@@ -175,7 +186,7 @@
                                     </div>
 
                                     {% if form.plan %}
-                                        <div class="col-md-6">
+                                        <div class="col-md-6 form-highlight">
                                             <label class="form-label">Plan</label>
                                             {{ form.plan|add_class:"form-select" }}
                                             {% for e in form.plan.errors %}
@@ -184,7 +195,7 @@
                                     {% endif %}
 
                                     {% if form.payment_id %}
-                                        <div class="col-md-6">
+                                        <div class="col-md-6 form-highlight">
                                             <label class="form-label">Payment / Transaction ID</label>
                                             <input type="text" name="{{ form.payment_id.name }}"
                                                    value="{{ form.payment_id.value|default_if_none:'' }}"
@@ -220,6 +231,24 @@
         </div>
     </div>
 
+    <script>
+      (function(){
+        var fields = document.querySelectorAll('form input, form select, form textarea');
+        fields.forEach(function(el){
+          var box = el.closest('.form-highlight');
+          if(!box) return;
+          function sync(){
+            if((el.value||'').trim()!=='') box.classList.add('has-value');
+            else box.classList.remove('has-value');
+          }
+          el.addEventListener('focus', function(){ box.classList.add('is-focus'); });
+          el.addEventListener('blur', function(){ box.classList.remove('is-focus'); sync(); });
+          el.addEventListener('input', sync);
+          el.addEventListener('change', sync);
+          sync();
+        });
+      })();
+    </script>
     <!-- Optional helpers -->
     <script>
         (function () {
@@ -241,3 +270,24 @@
         })();
     </script>
 {% endblock %}
+    <script>
+      (function(){
+        const form = document.querySelector('form');
+        if(!form) return;
+        function byName(n){ return form.querySelector(`[name="${n}"]`); }
+        const specialSeq = /[\W_]{3,}/; // 3+ consecutive special
+        const repeatedAlpha = /([A-Za-z])\1{4,}/; // 5+ same letter
+        ['{{ form.address_line1.name }}','{{ form.address_line2.name }}'].forEach(n=>{
+          const el = byName(n); if(!el) return;
+          el.addEventListener('input',()=>{
+            const v = el.value || '';
+            if (specialSeq.test(v)) el.setCustomValidity('Avoid more than 2 consecutive special characters.');
+            else if (repeatedAlpha.test(v)) el.setCustomValidity('Please avoid repeated characters.');
+            else el.setCustomValidity('');
+          });
+        });
+        // Make plan select required when present
+        const planSel = form.querySelector('select[name="{{ form.plan.name }}"]');
+        if (planSel) planSel.required = true;
+      })();
+    </script>

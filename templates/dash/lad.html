@@ -19,7 +19,7 @@
                     </div>
                 </div>
                 <div class="d-flex gap-2">
-                    <a class="btn btn-primary" href="{% url 'tenants:new_evaluator_user' %}">Create Evaluator</a>
+                    <a class="btn btn-primary" href="{% url 'tenants:new_evaluator' %}">Create Evaluator</a>
                     <a class="btn btn-outline-primary" href="{% url 'payments:create_record' %}">New Payment</a>
                     <a class="btn btn-outline-secondary" href="{% url 'tickets:list' %}">Manage Tickets</a>
                 </div>
@@ -103,25 +103,36 @@
             </div>
 
             <div class="row g-3 mb-3">
-                <div class="col-12 col-lg-6">
+                <div class="col-12 col-lg-4">
                     <div class="card h-100">
                         <div class="card-header pb-0">
-                            <h6 class="mb-1">Documents Uploaded (last 12 mo)</h6>
-                            <small class="text-muted">By month</small>
+                            <h6 class="mb-1">Evaluators Created ({{ range|default:"week" }})</h6>
+                            <small class="text-muted">Updates with the range filter above</small>
                         </div>
                         <div class="card-body">
-                            <canvas id="ladDocsChart" height="120"></canvas>
+                            <canvas id="chartEvaluators" height="120"></canvas>
                         </div>
                     </div>
                 </div>
-                <div class="col-12 col-lg-6">
+                <div class="col-12 col-lg-4">
                     <div class="card h-100">
                         <div class="card-header pb-0">
-                            <h6 class="mb-1">Activities Started (last 12 mo)</h6>
-                            <small class="text-muted">By month</small>
+                            <h6 class="mb-1">Payments Received — Count ({{ range|default:"week" }})</h6>
+                            <small class="text-muted">Number of payments</small>
                         </div>
                         <div class="card-body">
-                            <canvas id="ladActsChart" height="120"></canvas>
+                            <canvas id="chartPaymentsCount" height="120"></canvas>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-12 col-lg-4">
+                    <div class="card h-100">
+                        <div class="card-header pb-0">
+                            <h6 class="mb-1">Payments Received — Amount ({{ range|default:"week" }})</h6>
+                            <small class="text-muted">Sum of amounts</small>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="chartPaymentsAmount" height="120"></canvas>
                         </div>
                     </div>
                 </div>
@@ -131,7 +142,7 @@
                 <div class="card-body">
                     <h6 class="mb-2">Quick Actions</h6>
                     <div class="d-flex flex-wrap gap-2">
-                        <a class="btn btn-primary" href="{% url 'tenants:new_evaluator_user' %}">Create Evaluator</a>
+                        <a class="btn btn-primary" href="{% url 'tenants:new_evaluator' %}">Create Evaluator</a>
                         <a class="btn btn-outline-primary" href="{% url 'payments:create_record' %}">Create Payment</a>
                         <a class="btn btn-outline-primary" href="{% url 'tickets:list' %}">Manage Tickets</a>
                         <a class="btn btn-outline-secondary" href="{% url 'preferences:index' %}">Site Settings</a>
@@ -143,40 +154,19 @@
 {% endblock %}
 
 {% block extra_js %}
-    <script>
-        (function () {
-            // Feather icons (safe-guarded)
-            if (window.feather) {
-                try {
-                    feather.replace();
-                } catch (e) {
-                }
-            }
-
-            // Simple Chart.js line chart helpers
-            function mkChart(id, labels, data) {
-                var el = document.getElementById(id);
-                if (!el || !window.Chart) return;
-                try {
-                    new Chart(el.getContext('2d'), {
-                        type: 'line',
-                        data: {
-                            labels: labels || [],
-                            datasets: [{data: data || [], fill: false, tension: 0.3}]
-                        },
-                        options: {
-                            responsive: true,
-                            plugins: {legend: {display: false}},
-                            scales: {y: {beginAtZero: true}}
-                        }
-                    });
-                } catch (e) {
-                }
-            }
-
-            // Expecting chart_labels, chart_docs, chart_acts from view; guarded fallbacks
-            mkChart('ladDocsChart', {{ chart_labels|default:"[]"|safe }}, {{ chart_docs|default:"[]"|safe }});
-            mkChart('ladActsChart', {{ chart_labels|default:"[]"|safe }}, {{ chart_acts|default:"[]"|safe }});
-        })();
-    </script>
+<script>
+(function(){
+  function ready(fn){ if(document.readyState!=='loading') fn(); else document.addEventListener('DOMContentLoaded', fn); }
+  function loadScript(src){ return new Promise(function(res,rej){ var s=document.createElement('script'); s.src=src; s.async=true; s.onload=res; s.onerror=rej; document.head.appendChild(s);}); }
+  function renderLine(id, labels, data){
+    var el=document.getElementById(id); if(!el) return;
+    if(!window.Chart){ el.insertAdjacentHTML('afterend','<div class="text-muted small">Chart library not loaded</div>'); return; }
+    try{ new Chart(el.getContext('2d'), { type:'line', data:{ labels:labels||[], datasets:[{ data:(data||[]), fill:false, tension:0.3 }] }, options:{ responsive:true, plugins:{ legend:{display:false}}, scales:{ y:{ beginAtZero:true }}} }); }catch(e){ console.error('chart error',id,e);} }
+  ready(async function(){ if(!window.Chart){ try{ await loadScript('https://cdn.jsdelivr.net/npm/chart.js'); }catch(e){} }
+    renderLine('chartEvaluators', {{ eval_labels|default:'[]'|safe }}, {{ eval_data|default:'[]'|safe }});
+    renderLine('chartPaymentsCount', {{ pay_count_labels|default:'[]'|safe }}, {{ pay_count_data|default:'[]'|safe }});
+    renderLine('chartPaymentsAmount', {{ pay_amount_labels|default:'[]'|safe }}, {{ pay_amount_data|default:'[]'|safe }});
+  });
+})();
+</script>
 {% endblock %}
